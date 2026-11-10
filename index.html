@@ -2,18 +2,22 @@
 <html lang="ja" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Nambu Code Editor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+  <title>Nambu Mobile Editor</title>
 
-  <!-- PWA メタタグ -->
+  <!-- PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NambuEditor">
   <meta name="theme-color" content="#FFD400">
 
   <link rel="icon" id="dynamic-favicon">
   <link rel="apple-touch-icon" id="dynamic-apple-icon">
   <link rel="manifest" id="dynamic-manifest">
+
+  <!-- Prism.js コア & CSS文法 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
     /* 影・シャドウの完全排除 */
@@ -27,34 +31,60 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* 南武線イエロー (#FFD400) とテーマ変数 */
     :root {
       --nambu-yellow: #FFD400;
-      --border-width: 2px;
+      --border-solid: 2px solid #000000;
+      --font-code: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     }
 
     /* ダークテーマ */
     html[data-theme="dark"] {
-      --bg-main: #1e1e1e;
-      --bg-sub: #252526;
-      --bg-header: #FFD400;
-      --text-header: #000000;
-      --text-main: #f0f0f0;
-      --border-color: #3c3c3c;
-      --active-tab-bg: #2d2d2d;
-      --drawer-bg: #1e1e1e;
+      --bg-base: #121212;
+      --bg-editor: #1e1e1e;
+      --bg-bar: #252526;
+      --text-main: #d4d4d4;
+      --border-color: #383838;
+      --chip-bg: #2d2d2d;
+      --caret-color: #FFD400;
+
+      /* VS Code Dark+ 完全準拠配色 */
+      --hl-doctype: #569cd6;
+      --hl-doctype-name: #9cdcfe;
+      --hl-tag: #569cd6;
+      --hl-tag-bracket: #808080;
+      --hl-attr-name: #9cdcfe;
+      --hl-attr-val: #ce9178;
+      --hl-comment: #6a9955;
+      --hl-selector: #d7ba7d;
+      --hl-property: #9cdcfe;
+      --hl-val: #b5cea8;
+      --hl-punc: #d4d4d4;
+      --hl-keyword: #c586c0;
     }
 
     /* ライトテーマ */
     html[data-theme="light"] {
-      --bg-main: #ffffff;
-      --bg-sub: #f3f3f3;
-      --bg-header: #FFD400;
-      --text-header: #000000;
-      --text-main: #222222;
-      --border-color: #cccccc;
-      --active-tab-bg: #e5e5e5;
-      --drawer-bg: #ffffff;
+      --bg-base: #ffffff;
+      --bg-editor: #f8f8f8;
+      --bg-bar: #eeeeee;
+      --text-main: #000000;
+      --border-color: #d0d0d0;
+      --chip-bg: #e2e2e2;
+      --caret-color: #000000;
+
+      /* VS Code Light+ 完全準拠配色 */
+      --hl-doctype: #0000ff;
+      --hl-doctype-name: #001080;
+      --hl-tag: #800000;
+      --hl-tag-bracket: #808080;
+      --hl-attr-name: #e50000;
+      --hl-attr-val: #a31515;
+      --hl-comment: #008000;
+      --hl-selector: #800000;
+      --hl-property: #ff0000;
+      --hl-val: #098658;
+      --hl-punc: #000000;
+      --hl-keyword: #af00db;
     }
 
     body {
@@ -63,151 +93,200 @@
       height: 100dvh;
       display: flex;
       flex-direction: column;
-      background-color: var(--bg-main);
+      background-color: var(--bg-base);
       color: var(--text-main);
       overflow: hidden;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* ヘッダー（南武線イエロー一括） */
+    /* ヘッダー */
     header {
-      padding: 6px 12px;
-      background-color: var(--bg-header);
-      color: var(--text-header);
-      border-bottom: var(--border-width) solid #000000;
+      height: 48px;
+      background-color: var(--nambu-yellow);
+      color: #000000;
+      border-bottom: var(--border-solid);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 0 8px;
       flex-shrink: 0;
     }
 
-    .header-left, .header-right {
+    .header-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 5px;
+      height: 100%;
     }
 
-    /* フラットボタン */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      padding: 6px 10px;
-      font-size: 13px;
-      font-weight: bold;
-      border: var(--border-width) solid #000000;
-      background-color: #ffffff;
-      color: #000000;
-      cursor: pointer;
-      border-radius: 0; /* 完全スクエアフラット */
-    }
-
-    .btn:active {
-      background-color: #000000 !important;
-      color: var(--nambu-yellow) !important;
-    }
-
-    .btn-icon {
-      font-size: 16px;
-      padding: 4px 8px;
-    }
-
-    .current-project-name {
-      font-weight: bold;
-      font-size: 13px;
-      max-width: 140px;
+    .project-name {
+      font-weight: 900;
+      font-size: 14px;
+      max-width: 110px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    /* スマホ用タブバー */
-    .mobile-tabs {
-      display: none;
-      background-color: var(--bg-sub);
-      border-bottom: var(--border-width) solid var(--border-color);
-      flex-shrink: 0;
-    }
-
-    .mobile-tab-btn {
-      flex: 1;
-      padding: 10px 0;
-      background: none;
-      border: none;
-      border-bottom: 3px solid transparent;
-      color: var(--text-main);
-      font-size: 13px;
-      font-weight: bold;
+    .btn-header {
+      min-width: 38px;
+      height: 36px;
+      padding: 0 7px;
+      background-color: #000000;
+      color: var(--nambu-yellow);
+      border: 1px solid #000000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
       cursor: pointer;
     }
 
-    .mobile-tab-btn.active {
-      border-bottom: 3px solid var(--nambu-yellow);
-      background-color: var(--active-tab-bg);
-      color: var(--text-main);
+    .btn-header svg {
+      width: 17px;
+      height: 17px;
+      stroke: var(--nambu-yellow);
+      fill: none;
+      stroke-width: 2.3;
     }
 
-    /* メインコンテナ */
-    .container {
+    .btn-header:active {
+      background-color: #ffffff;
+      color: #000000;
+    }
+    .btn-header:active svg { stroke: #000000; }
+
+    /* ワークスペース */
+    .workspace {
       flex: 1;
       display: flex;
-      overflow: hidden;
       position: relative;
+      overflow: hidden;
+      min-height: 0;
     }
 
-    /* エディタ区画 */
     .editor-pane {
       width: 50%;
       display: flex;
       flex-direction: column;
-      border-right: var(--border-width) solid var(--border-color);
+      border-right: var(--border-solid);
+      background-color: var(--bg-editor);
     }
 
     .editor-section {
       flex: 1;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
       min-height: 0;
     }
 
     .editor-section:first-child {
-      border-bottom: var(--border-width) solid var(--border-color);
+      border-bottom: var(--border-solid);
     }
 
-    .editor-title {
-      padding: 4px 12px;
-      background-color: var(--bg-sub);
+    .editor-label {
+      padding: 4px 10px;
+      background-color: var(--bg-bar);
       font-size: 11px;
       font-weight: bold;
-      color: var(--text-main);
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
     }
 
-    .editor-container {
+    /* エディタとハイライトの重ね合わせ */
+    .editor-wrapper {
+      position: relative;
       flex: 1;
       width: 100%;
       height: 100%;
       min-height: 0;
+      overflow: hidden;
     }
 
-    /* プレビュー区画 */
+    .highlight-layer, textarea.code-input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 12px;
+      font-family: var(--font-code);
+      font-size: 16px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+      border: none;
+      box-sizing: border-box;
+      tab-size: 2;
+    }
+
+    /* 背面ハイライト（鮮やかな色分け） */
+    .highlight-layer {
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+      background: transparent;
+      color: var(--text-main);
+    }
+
+    .highlight-layer code {
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      white-space: inherit;
+    }
+
+    /* 前面 textarea（ネイティブ入力・スペース長押し維持） */
+    textarea.code-input {
+      z-index: 2;
+      background: transparent;
+      color: transparent;
+      -webkit-text-fill-color: transparent; /* Safari完全透過 */
+      caret-color: var(--caret-color);
+      outline: none;
+      resize: none;
+      overflow: auto;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    /* 文字選択時のハイライト可視化 */
+    textarea.code-input::selection {
+      background: rgba(255, 212, 0, 0.45) !important;
+      color: transparent !important;
+      -webkit-text-fill-color: transparent !important;
+    }
+
+    /* ★★★ シンタックスハイライト トークン定義 ★★★ */
+    /* DOCTYPE */
+    .token.doctype, .token.doctype .token.doctype-tag { color: var(--hl-doctype) !important; font-weight: bold; }
+    .token.doctype .token.name { color: var(--hl-doctype-name) !important; font-weight: normal; }
+
+    /* HTML タグ & 属性 */
+    .token.tag { color: var(--hl-tag) !important; }
+    .token.tag .token.tag { color: var(--hl-tag) !important; font-weight: bold; }
+    .token.tag .token.punctuation { color: var(--hl-tag-bracket) !important; }
+    .token.attr-name { color: var(--hl-attr-name) !important; }
+    .token.attr-value, .token.attr-value .token.punctuation:not(:first-child):not(:last-child) { color: var(--hl-attr-val) !important; }
+    .token.string { color: var(--hl-attr-val) !important; }
+
+    /* CSS セレクタ & プロパティ & 値 */
+    .token.selector { color: var(--hl-selector) !important; font-weight: bold; }
+    .token.property { color: var(--hl-property) !important; }
+    .token.number, .token.unit, .token.color { color: var(--hl-val) !important; }
+    .token.punctuation { color: var(--hl-punc) !important; }
+    .token.rule, .token.keyword { color: var(--hl-keyword) !important; }
+    .token.comment { color: var(--hl-comment) !important; font-style: italic; }
+
     .preview-pane {
       width: 50%;
       display: flex;
       flex-direction: column;
       background-color: #ffffff;
-    }
-
-    .preview-title {
-      padding: 4px 12px;
-      background-color: var(--bg-sub);
-      color: var(--text-main);
-      font-size: 11px;
-      font-weight: bold;
-      border-bottom: 1px solid var(--border-color);
     }
 
     iframe {
@@ -218,215 +297,318 @@
       background-color: #ffffff;
     }
 
-    /* サイドドロワー（プロジェクト一覧） */
+    /* サジェストバー */
+    .suggest-bar {
+      height: 36px;
+      background-color: var(--bg-bar);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 0 6px;
+      gap: 6px;
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .suggest-bar::-webkit-scrollbar { display: none; }
+
+    .suggest-chip {
+      height: 26px;
+      padding: 0 10px;
+      background-color: var(--chip-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 13px;
+      font-family: var(--font-code);
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .suggest-chip:active {
+      background-color: var(--nambu-yellow);
+      color: #000000;
+      border-color: #000000;
+    }
+
+    /* 記号バー */
+    .symbol-bar {
+      height: 42px;
+      background-color: #000000;
+      border-top: 2px solid var(--nambu-yellow);
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 0 6px;
+      gap: 5px;
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .symbol-bar::-webkit-scrollbar { display: none; }
+
+    .sym-btn {
+      min-width: 36px;
+      height: 34px;
+      padding: 0 8px;
+      background-color: #1a1a1a;
+      color: var(--nambu-yellow);
+      border: 1px solid #333333;
+      font-size: 14px;
+      font-family: var(--font-code);
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .sym-btn.nav-btn {
+      background-color: var(--nambu-yellow);
+      color: #000000;
+      border-color: var(--nambu-yellow);
+      font-weight: 900;
+    }
+    .sym-btn:active {
+      background-color: #ffffff;
+      color: #000000;
+    }
+
+    /* ボトムナビ */
+    .bottom-nav {
+      height: 48px;
+      background-color: #000000;
+      display: flex;
+      border-top: 1px solid #333333;
+      flex-shrink: 0;
+    }
+
+    .bottom-nav-btn {
+      flex: 1;
+      height: 100%;
+      background: none;
+      border: none;
+      color: #888888;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-top: 3px solid transparent;
+    }
+
+    .bottom-nav-btn.active {
+      color: #000000;
+      background-color: var(--nambu-yellow);
+      border-top: 3px solid #000000;
+    }
+
+    /* ドロワー */
     .drawer-overlay {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 100;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 200;
     }
 
     .drawer {
       position: fixed;
       top: 0;
-      left: -300px;
+      left: -290px;
       width: 280px;
       height: 100%;
-      background-color: var(--drawer-bg);
-      border-right: var(--border-width) solid #000000;
-      z-index: 101;
+      background-color: var(--bg-base);
+      border-right: var(--border-solid);
+      z-index: 201;
       display: flex;
       flex-direction: column;
-      transition: left 0.2s ease-out;
+      transition: left 0.18s ease-out;
     }
-
-    .drawer.open {
-      left: 0;
-    }
+    .drawer.open { left: 0; }
 
     .drawer-header {
-      padding: 12px;
+      height: 48px;
+      padding: 0 12px;
       background-color: var(--nambu-yellow);
       color: #000000;
-      font-weight: bold;
-      font-size: 15px;
-      border-bottom: var(--border-width) solid #000000;
+      font-weight: 900;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: var(--border-solid);
     }
 
-    .drawer-content {
+    .drawer-list {
       flex: 1;
       overflow-y: auto;
-      padding: 10px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
 
-    .project-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px;
+    .project-card {
+      padding: 12px 10px;
       border: 1px solid var(--border-color);
-      background-color: var(--bg-sub);
+      background-color: var(--bg-bar);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       cursor: pointer;
-      color: var(--text-main);
     }
-
-    .project-item.active {
-      border: var(--border-width) solid #000000;
+    .project-card.active {
+      border: var(--border-solid);
       background-color: var(--nambu-yellow);
       color: #000000;
       font-weight: bold;
     }
 
-    .project-item-actions {
-      display: flex;
-      gap: 4px;
-    }
-
-    .btn-small {
-      padding: 2px 6px;
-      font-size: 11px;
-      border: 1px solid #000000;
-      background: #ffffff;
-      color: #000000;
-      cursor: pointer;
-    }
-
-    /* スマホ画面対応 */
     @media (max-width: 768px) {
-      .mobile-tabs {
-        display: flex;
-      }
-
-      .container {
-        flex-direction: column;
-      }
-
       .editor-pane, .preview-pane {
+        position: absolute;
+        inset: 0;
         width: 100% !important;
         height: 100% !important;
         border: none !important;
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
         display: none;
       }
+      .editor-section { display: none; }
 
-      .editor-section {
+      .view-html #sec-html { display: flex; height: 100%; }
+      .view-html .editor-pane { display: flex; }
+
+      .view-css #sec-css { display: flex; height: 100%; }
+      .view-css .editor-pane { display: flex; }
+
+      .view-preview .preview-pane { display: flex; }
+
+      .view-preview + .suggest-bar,
+      .view-preview + .suggest-bar + .symbol-bar {
         display: none;
-      }
-
-      .show-html #section-html {
-        display: flex;
-        height: 100%;
-        border-bottom: none;
-      }
-      .show-html .editor-pane {
-        display: flex;
-      }
-
-      .show-css #section-css {
-        display: flex;
-        height: 100%;
-      }
-      .show-css .editor-pane {
-        display: flex;
-      }
-
-      .show-preview .preview-pane {
-        display: flex;
       }
     }
+
+    @media (min-width: 769px) {
+      .bottom-nav { display: none; }
+      .suggest-bar { display: none; }
+    }
   </style>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
-<body class="show-html">
+<body class="view-html">
 
-  <!-- ヘッダー -->
   <header>
-    <div class="header-left">
-      <button id="btn-menu" class="btn btn-icon" title="プロジェクト一覧">≡</button>
-      <span class="current-project-name" id="label-project-name">新規プロジェクト</span>
+    <div class="header-group">
+      <button id="btn-menu" class="btn-header" title="メニュー">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <span id="label-project-name" class="project-name">新規</span>
     </div>
 
-    <div class="header-right">
-      <button id="btn-theme" class="btn btn-icon" title="テーマ切り替え">☀️</button>
-      <button id="btn-load-trigger" class="btn" title="ファイル読込">📂 読込</button>
+    <div class="header-group">
+      <!-- Undo / Redo -->
+      <button id="btn-undo" class="btn-header" title="元に戻す">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+      </button>
+      <button id="btn-redo" class="btn-header" title="やり直す">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+      </button>
+      <!-- テーマ -->
+      <button id="btn-theme" class="btn-header" title="テーマ">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
+      </button>
+      <!-- 読込 -->
+      <button id="btn-load-trigger" class="btn-header" title="読込">
+        <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      </button>
       <input type="file" id="file-loader" accept=".html,.css,.zip,.txt" style="display:none">
-      <button id="download-zip" class="btn" title="ZIPダウンロード">📥 ZIP</button>
+      <!-- ZIP -->
+      <button id="btn-download-zip" class="btn-header" title="ZIP">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      </button>
     </div>
   </header>
 
-  <!-- スマホ専用タブ -->
-  <div class="mobile-tabs">
-    <button class="mobile-tab-btn active" data-tab="show-html">HTML</button>
-    <button class="mobile-tab-btn" data-tab="show-css">CSS</button>
-    <button class="mobile-tab-btn" data-tab="show-preview">PREVIEW</button>
-  </div>
-
-  <!-- エディタ & プレビュー -->
-  <div class="container">
+  <div class="workspace">
     <div class="editor-pane">
-      <div id="section-html" class="editor-section">
-        <div class="editor-title">HTML</div>
-        <div id="html-editor" class="editor-container"></div>
+      <div id="sec-html" class="editor-section">
+        <div class="editor-label">HTML</div>
+        <div class="editor-wrapper">
+          <pre class="highlight-layer" aria-hidden="true"><code id="html-highlight"></code></pre>
+          <textarea id="html-code" class="code-input" placeholder="HTMLを入力..." autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
+        </div>
       </div>
-
-      <div id="section-css" class="editor-section">
-        <div class="editor-title">CSS</div>
-        <div id="css-editor" class="editor-container"></div>
+      <div id="sec-css" class="editor-section">
+        <div class="editor-label">CSS</div>
+        <div class="editor-wrapper">
+          <pre class="highlight-layer" aria-hidden="true"><code id="css-highlight"></code></pre>
+          <textarea id="css-code" class="code-input" placeholder="CSSを入力..." autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
+        </div>
       </div>
     </div>
 
     <div class="preview-pane">
-      <div class="preview-title">PREVIEW</div>
       <iframe id="preview"></iframe>
     </div>
   </div>
 
-  <!-- プロジェクト管理ドロワー -->
+  <div class="suggest-bar" id="suggest-bar"></div>
+
+  <!-- 記号バー -->
+  <div class="symbol-bar">
+    <button class="sym-btn nav-btn" data-action="move-left">◀</button>
+    <button class="sym-btn nav-btn" data-action="move-right">▶</button>
+    <button class="sym-btn" data-action="template-html" style="font-size:12px; width:auto; padding:0 6px;">!HTML</button>
+    <button class="sym-btn" data-insert="  ">Tab</button>
+    <button class="sym-btn" data-insert='"' style="font-size:16px;">&quot;</button>
+    <button class="sym-btn" data-insert="'">&#39;</button>
+    <button class="sym-btn" data-insert="<">&lt;</button>
+    <button class="sym-btn" data-insert=">">&gt;</button>
+    <button class="sym-btn" data-insert="/">&sol;</button>
+    <button class="sym-btn" data-insert="=">=</button>
+    <button class="sym-btn" data-insert="{">&#123;</button>
+    <button class="sym-btn" data-insert="}">&#125;</button>
+    <button class="sym-btn" data-insert="(">(</button>
+    <button class="sym-btn" data-insert=")">)</button>
+    <button class="sym-btn" data-insert=":">:</button>
+    <button class="sym-btn" data-insert=";">;</button>
+    <button class="sym-btn" data-insert=".">.</button>
+    <button class="sym-btn" data-insert="#">#</button>
+    <button class="sym-btn" data-insert="!">!</button>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="bottom-nav-btn active" data-tab="view-html">HTML</button>
+    <button class="bottom-nav-btn" data-tab="view-css">CSS</button>
+    <button class="bottom-nav-btn" data-tab="view-preview">PREVIEW</button>
+  </div>
+
+  <!-- ドロワー -->
   <div id="drawer-overlay" class="drawer-overlay"></div>
   <div id="drawer" class="drawer">
     <div class="drawer-header">
-      <span>プロジェクト</span>
-      <button id="btn-close-drawer" class="btn btn-small">✕</button>
+      <span>PROJECTS</span>
+      <button id="btn-close-drawer" class="btn-header" style="min-width:32px; height:32px;">✕</button>
     </div>
-    <div style="padding: 10px; border-bottom: 1px solid var(--border-color);">
-      <button id="btn-new-project" class="btn" style="width: 100%;">＋ 新しいプロジェクト</button>
+    <div style="padding: 8px; border-bottom: 1px solid var(--border-color);">
+      <button id="btn-new-project" class="btn-header" style="width: 100%; height: 38px;">＋ 新規プロジェクト</button>
     </div>
-    <div id="project-list" class="drawer-content"></div>
+    <div id="project-list" class="drawer-list"></div>
   </div>
 
   <script>
-    // -------------------------------------------------------------
-    // 1. 南武線イエロー PWA アイコン自動生成
-    // -------------------------------------------------------------
+    // 1. 南武線イエロー PWA アイコン
     (function setupPWA() {
       const canvas = document.createElement('canvas');
       canvas.width = 192;
       canvas.height = 192;
       const ctx = canvas.getContext('2d');
-
-      // 背景（南武線イエロー #FFD400）
       ctx.fillStyle = '#FFD400';
       ctx.fillRect(0, 0, 192, 192);
-
-      // アイコン文字（黒）
       ctx.fillStyle = '#000000';
-      ctx.font = 'bold 76px -apple-system, monospace';
+      ctx.font = '900 80px -apple-system, monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('</>', 96, 96);
@@ -436,26 +618,22 @@
       document.getElementById('dynamic-apple-icon').href = iconUrl;
 
       const manifest = {
-        name: "Nambu Code Editor",
-        short_name: "NambuEditor",
+        name: "Nambu Mobile Editor",
+        short_name: "NambuEdit",
         start_url: window.location.href,
         display: "standalone",
         background_color: "#FFD400",
         theme_color: "#FFD400",
-        icons: [{ src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any maskable" }]
+        icons: [{ src: iconUrl, sizes: "192x192", type: "image/png" }]
       };
-      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-      document.getElementById('dynamic-manifest').href = URL.createObjectURL(blob);
+      document.getElementById('dynamic-manifest').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }));
     })();
 
-    // -------------------------------------------------------------
-    // 2. プロジェクト管理 & 自動保存 (LocalStorage)
-    // -------------------------------------------------------------
-    const STORAGE_KEY = 'nambu_editor_projects_v1';
-    const ACTIVE_KEY = 'nambu_editor_active_id_v1';
-
+    // 2. プロジェクト管理
+    const STORAGE_KEY = 'nambu_native_projects_v5';
+    const ACTIVE_KEY = 'nambu_native_active_id_v5';
     let projects = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
-      { id: 'p_default', name: 'プロジェクト 1', html: '', css: '' }
+      { id: 'p_1', name: 'プロジェクト 1', html: '', css: '' }
     ];
     let activeProjectId = localStorage.getItem(ACTIVE_KEY) || projects[0].id;
 
@@ -463,350 +641,508 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
       localStorage.setItem(ACTIVE_KEY, activeProjectId);
     }
-
     function getActiveProject() {
       return projects.find(p => p.id === activeProjectId) || projects[0];
     }
 
-    // -------------------------------------------------------------
-    // 3. テーマ切り替え (ライト / ダーク)
-    // -------------------------------------------------------------
-    const themeBtn = document.getElementById('btn-theme');
+    // 3. テーマ切り替え
     let currentTheme = localStorage.getItem('nambu_theme') || 'dark';
-
     function applyTheme(theme) {
       currentTheme = theme;
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('nambu_theme', theme);
-      themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-
-      if (window.monaco) {
-        monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
-      }
     }
     applyTheme(currentTheme);
-
-    themeBtn.addEventListener('click', () => {
+    document.getElementById('btn-theme').addEventListener('click', () => {
       applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
     });
 
-    // -------------------------------------------------------------
-    // 4. Monaco Editor セットアップ & タグ自動閉じ
-    // -------------------------------------------------------------
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+    // 4. 要素の取得
+    const htmlInput = document.getElementById('html-code');
+    const cssInput = document.getElementById('css-code');
+    const htmlHighlight = document.getElementById('html-highlight');
+    const cssHighlight = document.getElementById('css-highlight');
+    const preview = document.getElementById('preview');
+    const suggestBar = document.getElementById('suggest-bar');
 
-    require(['vs/editor/editor.main'], function () {
-      const activeProj = getActiveProject();
-      document.getElementById('label-project-name').textContent = activeProj.name;
+    function getActiveInput() {
+      return document.body.classList.contains('view-css') ? cssInput : htmlInput;
+    }
 
-      window.htmlEditor = monaco.editor.create(document.getElementById('html-editor'), {
-        value: activeProj.html,
-        language: 'html',
-        theme: currentTheme === 'dark' ? 'vs-dark' : 'vs',
-        wordWrap: 'on',
-        automaticLayout: true,
-        minimap: { enabled: false },
-        fontSize: 14,
-        autoClosingBrackets: 'always',
-        autoClosingQuotes: 'always',
-        suggestOnTriggerCharacters: true
-      });
+    // ★★★ 修正箇所：Prism.jsの文法解析エンジンを正確に呼び出し ★★★
+    function updateHighlight(input, highlightElem, lang) {
+      const text = input.value;
+      if (lang === 'html') {
+        // PrismではHTMLは「markup」として登録されている
+        const grammar = Prism.languages.markup || Prism.languages.html;
+        highlightElem.innerHTML = Prism.highlight(text + '\n', grammar, 'markup');
+      } else {
+        const grammar = Prism.languages.css;
+        highlightElem.innerHTML = Prism.highlight(text + '\n', grammar, 'css');
+      }
+    }
 
-      window.cssEditor = monaco.editor.create(document.getElementById('css-editor'), {
-        value: activeProj.css,
-        language: 'css',
-        theme: currentTheme === 'dark' ? 'vs-dark' : 'vs',
-        wordWrap: 'on',
-        automaticLayout: true,
-        minimap: { enabled: false },
-        fontSize: 14,
-        autoClosingBrackets: 'always',
-        autoClosingQuotes: 'always',
-        suggestOnTriggerCharacters: true
-      });
+    function syncScroll(input, highlightPre) {
+      highlightPre.scrollTop = input.scrollTop;
+      highlightPre.scrollLeft = input.scrollLeft;
+    }
 
-      // 閉じタグ不要リスト
-      const voidTags = new Set([
-        'area', 'base', 'br', 'col', 'embed', 'hr', 'img',
-        'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'
-      ]);
+    htmlInput.addEventListener('scroll', () => syncScroll(htmlInput, htmlHighlight.parentElement));
+    cssInput.addEventListener('scroll', () => syncScroll(cssInput, cssHighlight.parentElement));
 
-      // タグ自動閉じ機能（> を打ったら </tag> を生成）
-      window.htmlEditor.onDidChangeModelContent((event) => {
-        event.changes.forEach((change) => {
-          if (change.text === '>') {
-            const position = window.htmlEditor.getPosition();
-            const model = window.htmlEditor.getModel();
-            const lineContent = model.getLineContent(position.lineNumber);
-            const textBeforeCursor = lineContent.substring(0, position.column - 1);
+    // Undo / Redo
+    class HistoryManager {
+      constructor(input, onUpdate) {
+        this.input = input;
+        this.onUpdate = onUpdate;
+        this.undoStack = [];
+        this.redoStack = [];
+        this.lastVal = input.value;
+        this.timer = null;
+      }
+      record(val) {
+        if (val === this.lastVal) return;
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => {
+          this.undoStack.push({ val: this.lastVal, pos: this.input.selectionStart });
+          if (this.undoStack.length > 50) this.undoStack.shift();
+          this.redoStack = [];
+          this.lastVal = val;
+        }, 300);
+      }
+      undo() {
+        if (!this.undoStack.length) return;
+        this.redoStack.push({ val: this.input.value, pos: this.input.selectionStart });
+        const state = this.undoStack.pop();
+        this.input.value = state.val;
+        this.input.setSelectionRange(state.pos, state.pos);
+        this.lastVal = state.val;
+        this.onUpdate();
+      }
+      redo() {
+        if (!this.redoStack.length) return;
+        this.undoStack.push({ val: this.input.value, pos: this.input.selectionStart });
+        const state = this.redoStack.pop();
+        this.input.value = state.val;
+        this.input.setSelectionRange(state.pos, state.pos);
+        this.lastVal = state.val;
+        this.onUpdate();
+      }
+    }
 
-            if (textBeforeCursor.endsWith('/>')) return;
+    const htmlHistory = new HistoryManager(htmlInput, () => onEditorChange(htmlInput, htmlHighlight, 'html'));
+    const cssHistory = new HistoryManager(cssInput, () => onEditorChange(cssInput, cssHighlight, 'css'));
 
-            const match = textBeforeCursor.match(/<([a-zA-Z0-9\-]+)(?:\s+[^>]*)?>$/);
-            if (match) {
-              const tagName = match[1].toLowerCase();
-              if (!voidTags.has(tagName)) {
-                const closeTag = `</${tagName}>`;
-                window.htmlEditor.executeEdits('auto-close-tag', [{
-                  range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
-                  text: closeTag,
-                  forceMoveMarkers: false
-                }]);
-                window.htmlEditor.setPosition(position);
-              }
-            }
-          }
-        });
-      });
+    document.getElementById('btn-undo').addEventListener('click', () => {
+      if (document.body.classList.contains('view-css')) cssHistory.undo();
+      else htmlHistory.undo();
+    });
+    document.getElementById('btn-redo').addEventListener('click', () => {
+      if (document.body.classList.contains('view-css')) cssHistory.redo();
+      else htmlHistory.redo();
+    });
 
-      const preview = document.getElementById('preview');
-
-      // プレビュー反映 ＆ 自動保存
-      function updateAll() {
-        const html = window.htmlEditor.getValue();
-        const css = window.cssEditor.getValue();
-
-        // プロジェクトへ自動保存
+    // プレビュー反映
+    let previewDebounce = null;
+    function schedulePreview() {
+      clearTimeout(previewDebounce);
+      previewDebounce = setTimeout(() => {
+        const html = htmlInput.value;
+        const css = cssInput.value;
         const cur = getActiveProject();
         cur.html = html;
         cur.css = css;
         saveProjects();
 
-        // プレビュー更新
-        preview.srcdoc = `
-          <!DOCTYPE html>
-          <html lang="ja">
-          <head>
-            <meta charset="UTF-8">
-            <style>${css}</style>
-          </head>
-          <body>
-            ${html}
-          </body>
-          </html>
-        `;
-      }
+        preview.srcdoc = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>${css}</style></head><body>${html}</body></html>`;
+      }, 250);
+    }
 
-      window.htmlEditor.onDidChangeModelContent(updateAll);
-      window.cssEditor.onDidChangeModelContent(updateAll);
-      updateAll();
+    function onEditorChange(input, highlightElem, lang) {
+      updateHighlight(input, highlightElem, lang);
+      if (lang === 'html') htmlHistory.record(input.value);
+      else cssHistory.record(input.value);
+      schedulePreview();
+      renderSuggestions();
+    }
 
-      // -------------------------------------------------------------
-      // 5. ファイル読み込み（HTML / CSS / ZIP 対応）
-      // -------------------------------------------------------------
-      const fileInput = document.getElementById('file-loader');
-      document.getElementById('btn-load-trigger').addEventListener('click', () => fileInput.click());
+    // 初期データ投入
+    const curProj = getActiveProject();
+    document.getElementById('label-project-name').textContent = curProj.name;
+    htmlInput.value = curProj.html;
+    cssInput.value = curProj.css;
+    updateHighlight(htmlInput, htmlHighlight, 'html');
+    updateHighlight(cssInput, cssHighlight, 'css');
+    schedulePreview();
 
-      fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    htmlInput.addEventListener('input', () => onEditorChange(htmlInput, htmlHighlight, 'html'));
+    cssInput.addEventListener('input', () => onEditorChange(cssInput, cssHighlight, 'css'));
 
-        const filename = file.name.toLowerCase();
+    // クォーテーション & 括弧の自動ペア補完
+    const pairs = { '"': '"', "'": "'", '{': '}', '(': ')', '[': ']' };
+    const closingChars = new Set(['"', "'", '}', ')', ']']);
 
-        if (filename.endsWith('.zip')) {
-          // ZIP の解凍読み込み
-          try {
-            const zip = await JSZip.loadAsync(file);
-            let loadedHtml = null;
-            let loadedCss = null;
+    function setupAutoPairs(input, highlightElem, lang) {
+      input.addEventListener('keydown', (e) => {
+        const pos = input.selectionStart;
+        const end = input.selectionEnd;
+        const val = input.value;
+        const nextChar = val[pos];
 
-            for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
-              if (zipEntry.dir) continue;
-              if (relativePath.endsWith('.html') || relativePath.endsWith('.htm')) {
-                if (!loadedHtml) loadedHtml = await zipEntry.async('string');
-              } else if (relativePath.endsWith('.css')) {
-                if (!loadedCss) loadedCss = await zipEntry.async('string');
-              }
-            }
-
-            if (loadedHtml !== null) window.htmlEditor.setValue(loadedHtml);
-            if (loadedCss !== null) window.cssEditor.setValue(loadedCss);
-            alert('ZIPからHTML/CSSを読み込みました！');
-          } catch (err) {
-            alert('ZIPの読み込みに失敗しました。');
-          }
-        } else if (filename.endsWith('.html') || filename.endsWith('.htm')) {
-          const text = await file.text();
-          window.htmlEditor.setValue(text);
-        } else if (filename.endsWith('.css')) {
-          const text = await file.text();
-          window.cssEditor.setValue(text);
-        } else {
-          // テキストファイル等
-          const text = await file.text();
-          window.htmlEditor.setValue(text);
+        // スキップ
+        if (closingChars.has(e.key) && nextChar === e.key && pos === end) {
+          e.preventDefault();
+          input.setSelectionRange(pos + 1, pos + 1);
+          return;
         }
-        fileInput.value = '';
+
+        // ペア挿入
+        if (pairs[e.key]) {
+          e.preventDefault();
+          const open = e.key;
+          const close = pairs[e.key];
+
+          if (pos !== end) {
+            const selected = val.substring(pos, end);
+            input.setRangeText(open + selected + close, pos, end, 'end');
+            input.setSelectionRange(pos + 1, end + 1);
+          } else {
+            input.setRangeText(open + close, pos, pos, 'end');
+            input.setSelectionRange(pos + 1, pos + 1);
+          }
+          onEditorChange(input, highlightElem, lang);
+          return;
+        }
+
+        // ペア削除
+        if (e.key === 'Backspace' && pos === end && pos > 0) {
+          const prev = val[pos - 1];
+          const curr = val[pos];
+          if (pairs[prev] && pairs[prev] === curr) {
+            e.preventDefault();
+            input.setRangeText('', pos - 1, pos + 1, 'end');
+            input.setSelectionRange(pos - 1, pos - 1);
+            onEditorChange(input, highlightElem, lang);
+            return;
+          }
+        }
       });
 
-      // -------------------------------------------------------------
-      // 6. プロジェクトメニュー（≡）の操作
-      // -------------------------------------------------------------
-      const drawer = document.getElementById('drawer');
-      const drawerOverlay = document.getElementById('drawer-overlay');
-      const projectListEl = document.getElementById('project-list');
+      input.addEventListener('beforeinput', (e) => {
+        if (e.inputType === 'insertText') {
+          const char = e.data;
+          const pos = input.selectionStart;
+          const end = input.selectionEnd;
+          const val = input.value;
 
-      function renderProjectList() {
-        projectListEl.innerHTML = '';
-        projects.forEach(p => {
-          const item = document.createElement('div');
-          item.className = 'project-item' + (p.id === activeProjectId ? ' active' : '');
-
-          const titleSpan = document.createElement('span');
-          titleSpan.textContent = p.name;
-          titleSpan.style.flex = '1';
-          titleSpan.style.cursor = 'pointer';
-          titleSpan.onclick = () => switchProject(p.id);
-          item.appendChild(titleSpan);
-
-          const actions = document.createElement('div');
-          actions.className = 'project-item-actions';
-
-          // 名前変更ボタン
-          const editBtn = document.createElement('button');
-          editBtn.className = 'btn-small';
-          editBtn.textContent = '改名';
-          editBtn.onclick = (e) => {
-            e.stopPropagation();
-            const newName = prompt('プロジェクト名を入力:', p.name);
-            if (newName && newName.trim()) {
-              p.name = newName.trim();
-              saveProjects();
-              renderProjectList();
-              if (p.id === activeProjectId) {
-                document.getElementById('label-project-name').textContent = p.name;
-              }
-            }
-          };
-          actions.appendChild(editBtn);
-
-          // 削除ボタン (プロジェクトが2つ以上あるときのみ)
-          if (projects.length > 1) {
-            const delBtn = document.createElement('button');
-            delBtn.className = 'btn-small';
-            delBtn.textContent = '削除';
-            delBtn.onclick = (e) => {
-              e.stopPropagation();
-              if (confirm(`「${p.name}」を削除しますか？`)) {
-                projects = projects.filter(item => item.id !== p.id);
-                if (activeProjectId === p.id) {
-                  activeProjectId = projects[0].id;
-                }
-                saveProjects();
-                switchProject(activeProjectId);
-              }
-            };
-            actions.appendChild(delBtn);
+          if (closingChars.has(char) && val[pos] === char && pos === end) {
+            e.preventDefault();
+            input.setSelectionRange(pos + 1, pos + 1);
+            return;
           }
 
-          item.appendChild(actions);
-          projectListEl.appendChild(item);
-        });
+          if (pairs[char]) {
+            e.preventDefault();
+            const open = char;
+            const close = pairs[char];
+            if (pos !== end) {
+              const selected = val.substring(pos, end);
+              input.setRangeText(open + selected + close, pos, end, 'end');
+              input.setSelectionRange(pos + 1, end + 1);
+            } else {
+              input.setRangeText(open + close, pos, pos, 'end');
+              input.setSelectionRange(pos + 1, pos + 1);
+            }
+            onEditorChange(input, highlightElem, lang);
+          }
+        }
+      });
+    }
+
+    setupAutoPairs(htmlInput, htmlHighlight, 'html');
+    setupAutoPairs(cssInput, cssHighlight, 'css');
+
+    // タグ自動閉じ
+    const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+    htmlInput.addEventListener('input', (e) => {
+      if (e.data === '>') {
+        const pos = htmlInput.selectionStart;
+        const textBefore = htmlInput.value.substring(0, pos);
+        if (!textBefore.endsWith('/>')) {
+          const match = textBefore.match(/<([a-zA-Z0-9\-]+)(?:\s+[^>]*)?>$/);
+          if (match && !voidTags.has(match[1].toLowerCase())) {
+            const closeTag = `</${match[1].toLowerCase()}>`;
+            htmlInput.setRangeText(closeTag, pos, pos, 'end');
+            htmlInput.setSelectionRange(pos, pos);
+            onEditorChange(htmlInput, htmlHighlight, 'html');
+          }
+        }
       }
+    });
 
-      function switchProject(id) {
-        activeProjectId = id;
-        saveProjects();
-        const p = getActiveProject();
-        document.getElementById('label-project-name').textContent = p.name;
-        window.htmlEditor.setValue(p.html);
-        window.cssEditor.setValue(p.css);
-        closeDrawer();
-      }
+    // スマートEnter（インデント付き改行）
+    function handleSmartEnter(textarea, highlightElem, lang) {
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const pos = textarea.selectionStart;
+          const val = textarea.value;
+          const before = val.substring(0, pos);
+          const after = val.substring(pos);
 
-      function openDrawer() {
-        renderProjectList();
-        drawer.classList.add('open');
-        drawerOverlay.style.display = 'block';
-      }
+          const lines = before.split('\n');
+          const currentLine = lines[lines.length - 1];
+          const indentMatch = currentLine.match(/^(\s*)/);
+          const baseIndent = indentMatch ? indentMatch[1] : '';
 
-      function closeDrawer() {
-        drawer.classList.remove('open');
-        drawerOverlay.style.display = 'none';
-      }
+          const isBetweenTags = before.endsWith('>') && after.startsWith('</');
+          const isBetweenBraces = before.endsWith('{') && after.startsWith('}');
 
-      document.getElementById('btn-menu').addEventListener('click', openDrawer);
-      document.getElementById('btn-close-drawer').addEventListener('click', closeDrawer);
-      drawerOverlay.addEventListener('click', closeDrawer);
+          if (isBetweenTags || isBetweenBraces) {
+            e.preventDefault();
+            const childIndent = baseIndent + '  ';
+            const insertText = '\n' + childIndent + '\n' + baseIndent;
+            textarea.setRangeText(insertText, pos, pos, 'end');
+            const newCursorPos = pos + 1 + childIndent.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+            onEditorChange(textarea, highlightElem, lang);
+            return;
+          }
 
-      // 新規プロジェクト作成
-      document.getElementById('btn-new-project').addEventListener('click', () => {
-        const name = prompt('新しいプロジェクト名:', `プロジェクト ${projects.length + 1}`);
-        if (name && name.trim()) {
-          const newProj = {
-            id: 'p_' + Date.now(),
-            name: name.trim(),
-            html: '',
-            css: ''
-          };
-          projects.push(newProj);
-          switchProject(newProj.id);
+          e.preventDefault();
+          const insertText = '\n' + baseIndent;
+          textarea.setRangeText(insertText, pos, pos, 'end');
+          const newCursorPos = pos + insertText.length;
+          textarea.setSelectionRange(newCursorPos, newCursorPos);
+          onEditorChange(textarea, highlightElem, lang);
+        }
+      });
+    }
+
+    handleSmartEnter(htmlInput, htmlHighlight, 'html');
+    handleSmartEnter(cssInput, cssHighlight, 'css');
+
+    // 候補チップ（サジェスト）
+    const commonHtmlTags = ['div', 'span', 'p', 'a', 'h1', 'h2', 'h3', 'ul', 'li', 'button', 'input', 'img', 'header', 'main', 'section', 'footer', 'nav'];
+    const commonCssProps = ['color:', 'background:', 'font-size:', 'margin:', 'padding:', 'display: flex;', 'width:', 'height:', 'border:', 'border-radius:', 'cursor: pointer;'];
+
+    function renderSuggestions() {
+      const isCss = document.body.classList.contains('view-css');
+      const input = isCss ? cssInput : htmlInput;
+      const highlightElem = isCss ? cssHighlight : htmlHighlight;
+      const lang = isCss ? 'css' : 'html';
+
+      const pos = input.selectionStart;
+      const val = input.value;
+      const word = val.substring(0, pos).split(/[\s<>{}:;]/).pop().toLowerCase();
+
+      suggestBar.innerHTML = '';
+      const list = isCss ? commonCssProps : commonHtmlTags;
+      const filtered = word ? list.filter(item => item.toLowerCase().includes(word)) : list.slice(0, 8);
+
+      filtered.forEach(item => {
+        const chip = document.createElement('button');
+        chip.className = 'suggest-chip';
+        chip.textContent = item;
+        chip.onmousedown = (e) => e.preventDefault();
+        chip.onclick = () => {
+          const start = pos - word.length;
+          input.setRangeText(item, start, pos, 'end');
+          input.focus();
+          onEditorChange(input, highlightElem, lang);
+        };
+        suggestBar.appendChild(chip);
+      });
+    }
+
+    // 記号バー & 移動 & 雛形
+    document.querySelectorAll('.symbol-bar button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isCss = document.body.classList.contains('view-css');
+        const input = getActiveInput();
+        const highlightElem = isCss ? cssHighlight : htmlHighlight;
+        const lang = isCss ? 'css' : 'html';
+
+        if (btn.dataset.action === 'move-left') {
+          const next = Math.max(0, input.selectionStart - 1);
+          input.setSelectionRange(next, next);
+          input.focus();
+        } else if (btn.dataset.action === 'move-right') {
+          const next = Math.min(input.value.length, input.selectionStart + 1);
+          input.setSelectionRange(next, next);
+          input.focus();
+        } else if (btn.dataset.action === 'template-html') {
+          const template = `<!DOCTYPE html>\n<html lang="ja">\n<head>\n  <meta charset="UTF-8">\n  <title>Document</title>\n</head>\n<body>\n  \n</body>\n</html>`;
+          htmlInput.value = template;
+          htmlInput.setSelectionRange(template.indexOf('<body>\n  ') + 9, template.indexOf('<body>\n  ') + 9);
+          onEditorChange(htmlInput, htmlHighlight, 'html');
+          htmlInput.focus();
+        } else if (btn.dataset.insert) {
+          const char = btn.dataset.insert;
+          const pos = input.selectionStart;
+
+          if (pairs[char]) {
+            input.setRangeText(char + pairs[char], pos, input.selectionEnd, 'end');
+            input.setSelectionRange(pos + 1, pos + 1);
+          } else {
+            input.setRangeText(char, pos, input.selectionEnd, 'end');
+          }
+          input.focus();
+          onEditorChange(input, highlightElem, lang);
         }
       });
     });
 
-    // -------------------------------------------------------------
-    // 7. スマホ用タブ切り替え
-    // -------------------------------------------------------------
-    const tabButtons = document.querySelectorAll('.mobile-tab-btn');
-    tabButtons.forEach(btn => {
+    // ボトムナビ切り替え
+    document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        tabButtons.forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
-        document.body.classList.remove('show-html', 'show-css', 'show-preview');
+        document.body.classList.remove('view-html', 'view-css', 'view-preview');
         document.body.classList.add(btn.dataset.tab);
-
-        if (window.htmlEditor) window.htmlEditor.layout();
-        if (window.cssEditor) window.cssEditor.layout();
+        renderSuggestions();
       });
     });
 
-    // -------------------------------------------------------------
-    // 8. ZIP保存処理
-    // -------------------------------------------------------------
-    document.getElementById('download-zip').addEventListener('click', () => {
-      if (!window.htmlEditor || !window.cssEditor) return;
-      const zip = new JSZip();
-      const html = window.htmlEditor.getValue();
-      const css = window.cssEditor.getValue();
+    // ファイル読込
+    const fileInput = document.getElementById('file-loader');
+    document.getElementById('btn-load-trigger').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const fn = file.name.toLowerCase();
 
+      if (fn.endsWith('.zip')) {
+        const zip = await JSZip.loadAsync(file);
+        for (const [name, entry] of Object.entries(zip.files)) {
+          if (entry.dir) continue;
+          if (name.endsWith('.html') || name.endsWith('.htm')) {
+            htmlInput.value = await entry.async('string');
+          } else if (name.endsWith('.css')) {
+            cssInput.value = await entry.async('string');
+          }
+        }
+      } else if (fn.endsWith('.css')) {
+        cssInput.value = await file.text();
+      } else {
+        htmlInput.value = await file.text();
+      }
+      fileInput.value = '';
+      onEditorChange(htmlInput, htmlHighlight, 'html');
+      onEditorChange(cssInput, cssHighlight, 'css');
+    });
+
+    // ZIPダウンロード
+    document.getElementById('btn-download-zip').addEventListener('click', () => {
+      const zip = new JSZip();
+      const html = htmlInput.value;
+      const css = cssInput.value;
       let finalHtml = html;
       if (!html.toLowerCase().includes('<html')) {
-        finalHtml = `<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-${html}
-</body>
-</html>`;
+        finalHtml = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Document</title><link rel="stylesheet" href="style.css"></head><body>\n${html}\n</body></html>`;
       } else if (!finalHtml.includes('style.css')) {
-        if (finalHtml.includes('</head>')) {
-          finalHtml = finalHtml.replace('</head>', '  <link rel="stylesheet" href="style.css">\n</head>');
-        } else {
-          finalHtml = finalHtml.replace(/<body[^>]*>/i, '<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n$&');
-        }
+        finalHtml = finalHtml.includes('</head>') ? finalHtml.replace('</head>', '  <link rel="stylesheet" href="style.css">\n</head>') : `<link rel="stylesheet" href="style.css">\n${finalHtml}`;
       }
-
       zip.file("index.html", finalHtml);
       zip.file("style.css", css);
 
-      const projName = document.getElementById('label-project-name').textContent.trim() || 'web-project';
-      zip.generateAsync({ type: "blob" }).then(function (blob) {
-        const url = URL.createObjectURL(blob);
+      const name = document.getElementById('label-project-name').textContent.trim() || 'project';
+      zip.generateAsync({ type: "blob" }).then(blob => {
         const a = document.createElement("a");
-        a.href = url;
-        a.download = `${projName}.zip`;
-        document.body.appendChild(a);
+        a.href = URL.createObjectURL(blob);
+        a.download = `${name}.zip`;
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(a.href);
       });
+    });
+
+    // プロジェクト一覧
+    const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('drawer-overlay');
+    const listEl = document.getElementById('project-list');
+
+    function renderList() {
+      listEl.innerHTML = '';
+      projects.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'project-card' + (p.id === activeProjectId ? ' active' : '');
+
+        const title = document.createElement('span');
+        title.textContent = p.name;
+        title.style.flex = '1';
+        title.onclick = () => switchProj(p.id);
+        card.appendChild(title);
+
+        const actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '4px';
+
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'btn-header';
+        renameBtn.style.cssText = 'min-width:32px; height:30px; font-size:11px;';
+        renameBtn.textContent = '改名';
+        renameBtn.onclick = (e) => {
+          e.stopPropagation();
+          const val = prompt('プロジェクト名:', p.name);
+          if (val && val.trim()) {
+            p.name = val.trim();
+            saveProjects();
+            renderList();
+            if (p.id === activeProjectId) document.getElementById('label-project-name').textContent = p.name;
+          }
+        };
+        actions.appendChild(renameBtn);
+
+        if (projects.length > 1) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-header';
+          delBtn.style.cssText = 'min-width:32px; height:30px; font-size:11px; background:#cc0000; color:#fff; border-color:#cc0000;';
+          delBtn.textContent = '削除';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm(`「${p.name}」を削除しますか？`)) {
+              projects = projects.filter(item => item.id !== p.id);
+              if (activeProjectId === p.id) activeProjectId = projects[0].id;
+              saveProjects();
+              switchProj(activeProjectId);
+            }
+          };
+          actions.appendChild(delBtn);
+        }
+
+        card.appendChild(actions);
+        listEl.appendChild(card);
+      });
+    }
+
+    function switchProj(id) {
+      activeProjectId = id;
+      saveProjects();
+      const p = getActiveProject();
+      document.getElementById('label-project-name').textContent = p.name;
+      htmlInput.value = p.html;
+      cssInput.value = p.css;
+      updateHighlight(htmlInput, htmlHighlight, 'html');
+      updateHighlight(cssInput, cssHighlight, 'css');
+      schedulePreview();
+      renderSuggestions();
+      closeDrawer();
+    }
+
+    function openDrawer() { renderList(); drawer.classList.add('open'); overlay.style.display = 'block'; }
+    function closeDrawer() { drawer.classList.remove('open'); overlay.style.display = 'none'; }
+    document.getElementById('btn-menu').addEventListener('click', openDrawer);
+    document.getElementById('btn-close-drawer').addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', closeDrawer);
+
+    document.getElementById('btn-new-project').addEventListener('click', () => {
+      const val = prompt('新規プロジェクト名:', `プロジェクト ${projects.length + 1}`);
+      if (val && val.trim()) {
+        const np = { id: 'p_' + Date.now(), name: val.trim(), html: '', css: '' };
+        projects.push(np);
+        switchProj(np.id);
+      }
     });
   </script>
 </body>
