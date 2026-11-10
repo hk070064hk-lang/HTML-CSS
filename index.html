@@ -35,6 +35,7 @@
       --nambu-yellow: #FFD400;
       --border-solid: 2px solid #000000;
       --font-code: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --error-red: #ff3b30;
     }
 
     /* ダークテーマ */
@@ -47,7 +48,12 @@
       --chip-bg: #2d2d2d;
       --caret-color: #FFD400;
 
-      /* VS Code Dark+ 完全準拠配色 */
+      /* 予測変換ポップアップ */
+      --popup-bg: #252526;
+      --popup-border: #454545;
+      --popup-item-hover: #04395e;
+
+      /* VS Code Dark+ 配色 */
       --hl-doctype: #569cd6;
       --hl-doctype-name: #9cdcfe;
       --hl-tag: #569cd6;
@@ -72,7 +78,12 @@
       --chip-bg: #e2e2e2;
       --caret-color: #000000;
 
-      /* VS Code Light+ 完全準拠配色 */
+      /* 予測変換ポップアップ */
+      --popup-bg: #f3f3f3;
+      --popup-border: #cccccc;
+      --popup-item-hover: #e8e8e8;
+
+      /* VS Code Light+ 配色 */
       --hl-doctype: #0000ff;
       --hl-doctype-name: #001080;
       --hl-tag: #800000;
@@ -224,7 +235,6 @@
       tab-size: 2;
     }
 
-    /* 背面ハイライト（鮮やかな色分け） */
     .highlight-layer {
       z-index: 1;
       overflow: hidden;
@@ -240,12 +250,11 @@
       white-space: inherit;
     }
 
-    /* 前面 textarea（ネイティブ入力・スペース長押し維持） */
     textarea.code-input {
       z-index: 2;
       background: transparent;
       color: transparent;
-      -webkit-text-fill-color: transparent; /* Safari完全透過 */
+      -webkit-text-fill-color: transparent;
       caret-color: var(--caret-color);
       outline: none;
       resize: none;
@@ -254,19 +263,16 @@
       user-select: text;
     }
 
-    /* 文字選択時のハイライト可視化 */
     textarea.code-input::selection {
       background: rgba(255, 212, 0, 0.45) !important;
       color: transparent !important;
       -webkit-text-fill-color: transparent !important;
     }
 
-    /* ★★★ シンタックスハイライト トークン定義 ★★★ */
-    /* DOCTYPE */
+    /* シンタックスハイライト */
     .token.doctype, .token.doctype .token.doctype-tag { color: var(--hl-doctype) !important; font-weight: bold; }
     .token.doctype .token.name { color: var(--hl-doctype-name) !important; font-weight: normal; }
 
-    /* HTML タグ & 属性 */
     .token.tag { color: var(--hl-tag) !important; }
     .token.tag .token.tag { color: var(--hl-tag) !important; font-weight: bold; }
     .token.tag .token.punctuation { color: var(--hl-tag-bracket) !important; }
@@ -274,13 +280,69 @@
     .token.attr-value, .token.attr-value .token.punctuation:not(:first-child):not(:last-child) { color: var(--hl-attr-val) !important; }
     .token.string { color: var(--hl-attr-val) !important; }
 
-    /* CSS セレクタ & プロパティ & 値 */
     .token.selector { color: var(--hl-selector) !important; font-weight: bold; }
     .token.property { color: var(--hl-property) !important; }
     .token.number, .token.unit, .token.color { color: var(--hl-val) !important; }
     .token.punctuation { color: var(--hl-punc) !important; }
     .token.rule, .token.keyword { color: var(--hl-keyword) !important; }
     .token.comment { color: var(--hl-comment) !important; font-style: italic; }
+
+    /* エラー波線 */
+    .syntax-error {
+      text-decoration: underline wavy var(--error-red) !important;
+      -webkit-text-decoration: underline wavy var(--error-red) !important;
+      text-decoration-skip-ink: none;
+      text-underline-offset: 3px;
+    }
+
+    /* ★★★ カーソル直下 予測変換ポップアップ (IntelliSense) ★★★ */
+    .autocomplete-popup {
+      position: fixed;
+      display: none;
+      z-index: 999;
+      background-color: var(--popup-bg);
+      border: 1px solid #000000;
+      outline: 2px solid var(--nambu-yellow);
+      max-height: 200px;
+      width: 260px;
+      overflow-y: auto;
+      font-family: var(--font-code);
+      font-size: 13px;
+    }
+
+    .autocomplete-item {
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    .autocomplete-item:last-child {
+      border-bottom: none;
+    }
+
+    .autocomplete-item.selected {
+      background-color: var(--nambu-yellow) !important;
+      color: #000000 !important;
+      font-weight: 900;
+    }
+
+    .autocomplete-item .item-type {
+      font-size: 10px;
+      padding: 1px 4px;
+      background: #000000;
+      color: var(--nambu-yellow);
+      font-weight: bold;
+    }
+
+    .autocomplete-item.selected .item-type {
+      background: #000000;
+      color: #ffffff;
+    }
 
     .preview-pane {
       width: 50%;
@@ -295,41 +357,6 @@
       height: 100%;
       border: none;
       background-color: #ffffff;
-    }
-
-    /* サジェストバー */
-    .suggest-bar {
-      height: 36px;
-      background-color: var(--bg-bar);
-      border-top: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      overflow-x: auto;
-      white-space: nowrap;
-      padding: 0 6px;
-      gap: 6px;
-      flex-shrink: 0;
-      -webkit-overflow-scrolling: touch;
-    }
-    .suggest-bar::-webkit-scrollbar { display: none; }
-
-    .suggest-chip {
-      height: 26px;
-      padding: 0 10px;
-      background-color: var(--chip-bg);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      font-size: 13px;
-      font-family: var(--font-code);
-      font-weight: bold;
-      display: inline-flex;
-      align-items: center;
-      cursor: pointer;
-    }
-    .suggest-chip:active {
-      background-color: var(--nambu-yellow);
-      color: #000000;
-      border-color: #000000;
     }
 
     /* 記号バー */
@@ -485,15 +512,13 @@
 
       .view-preview .preview-pane { display: flex; }
 
-      .view-preview + .suggest-bar,
-      .view-preview + .suggest-bar + .symbol-bar {
+      .view-preview + .symbol-bar {
         display: none;
       }
     }
 
     @media (min-width: 769px) {
       .bottom-nav { display: none; }
-      .suggest-bar { display: none; }
     }
   </style>
 </head>
@@ -508,23 +533,19 @@
     </div>
 
     <div class="header-group">
-      <!-- Undo / Redo -->
       <button id="btn-undo" class="btn-header" title="元に戻す">
         <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
       </button>
       <button id="btn-redo" class="btn-header" title="やり直す">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
       </button>
-      <!-- テーマ -->
       <button id="btn-theme" class="btn-header" title="テーマ">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
       </button>
-      <!-- 読込 -->
       <button id="btn-load-trigger" class="btn-header" title="読込">
         <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
       </button>
       <input type="file" id="file-loader" accept=".html,.css,.zip,.txt" style="display:none">
-      <!-- ZIP -->
       <button id="btn-download-zip" class="btn-header" title="ZIP">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
       </button>
@@ -554,7 +575,8 @@
     </div>
   </div>
 
-  <div class="suggest-bar" id="suggest-bar"></div>
+  <!-- ★ 予測変換ポップアップ（カーソル追従） -->
+  <div id="autocomplete-popup" class="autocomplete-popup"></div>
 
   <!-- 記号バー -->
   <div class="symbol-bar">
@@ -599,7 +621,59 @@
   </div>
 
   <script>
-    // 1. 南武線イエロー PWA アイコン
+    // HTML標準タグリスト
+    const validHtmlTags = new Set([
+      'html', 'head', 'body', 'title', 'meta', 'link', 'style', 'script', 'noscript',
+      'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'hr',
+      'a', 'button', 'input', 'textarea', 'select', 'option', 'optgroup', 'form', 'label', 'fieldset', 'legend',
+      'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+      'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption', 'col', 'colgroup',
+      'img', 'audio', 'video', 'source', 'track', 'canvas', 'svg', 'iframe', 'embed', 'object', 'param', 'picture',
+      'header', 'footer', 'main', 'nav', 'section', 'article', 'aside', 'figure', 'figcaption',
+      'b', 'strong', 'i', 'em', 'u', 's', 'small', 'mark', 'sub', 'sup', 'code', 'pre', 'kbd', 'samp', 'var',
+      'blockquote', 'q', 'cite', 'abbr', 'address', 'time', 'progress', 'meter', 'details', 'summary', 'dialog'
+    ]);
+
+    function isValidHtmlTag(tagName) {
+      if (!tagName) return true;
+      const lower = tagName.toLowerCase();
+      if (lower.startsWith('!') || lower === '!doctype') return true;
+      if (validHtmlTags.has(lower)) return true;
+      const el = document.createElement(lower);
+      return !(el instanceof HTMLUnknownElement);
+    }
+
+    function isValidCssProperty(propName) {
+      if (!propName) return true;
+      const p = propName.trim().toLowerCase();
+      if (!p || p.startsWith('--')) return true;
+      try {
+        return CSS.supports(p, 'inherit') || CSS.supports(p, 'initial') || CSS.supports(`${p}: initial`);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    Prism.hooks.add('wrap', function (env) {
+      if (env.type === 'property') {
+        const rawProp = env.content.replace(/<[^>]*>/g, '').trim();
+        if (rawProp && !isValidCssProperty(rawProp)) {
+          env.classes.push('syntax-error');
+        }
+      }
+      if (env.type === 'tag') {
+        const text = typeof env.content === 'string' ? env.content : env.content.toString();
+        const match = text.match(/<\/?([a-zA-Z0-9\-]+)/);
+        if (match) {
+          const tagName = match[1];
+          if (!isValidHtmlTag(tagName)) {
+            env.classes.push('syntax-error');
+          }
+        }
+      }
+    });
+
+    // PWA アイコン自動生成
     (function setupPWA() {
       const canvas = document.createElement('canvas');
       canvas.width = 192;
@@ -629,9 +703,9 @@
       document.getElementById('dynamic-manifest').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }));
     })();
 
-    // 2. プロジェクト管理
-    const STORAGE_KEY = 'nambu_native_projects_v5';
-    const ACTIVE_KEY = 'nambu_native_active_id_v5';
+    // プロジェクト管理
+    const STORAGE_KEY = 'nambu_native_projects_v8';
+    const ACTIVE_KEY = 'nambu_native_active_id_v8';
     let projects = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
       { id: 'p_1', name: 'プロジェクト 1', html: '', css: '' }
     ];
@@ -645,7 +719,7 @@
       return projects.find(p => p.id === activeProjectId) || projects[0];
     }
 
-    // 3. テーマ切り替え
+    // テーマ切り替え
     let currentTheme = localStorage.getItem('nambu_theme') || 'dark';
     function applyTheme(theme) {
       currentTheme = theme;
@@ -657,23 +731,21 @@
       applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
     });
 
-    // 4. 要素の取得
+    // 要素取得
     const htmlInput = document.getElementById('html-code');
     const cssInput = document.getElementById('css-code');
     const htmlHighlight = document.getElementById('html-highlight');
     const cssHighlight = document.getElementById('css-highlight');
     const preview = document.getElementById('preview');
-    const suggestBar = document.getElementById('suggest-bar');
+    const popup = document.getElementById('autocomplete-popup');
 
     function getActiveInput() {
       return document.body.classList.contains('view-css') ? cssInput : htmlInput;
     }
 
-    // ★★★ 修正箇所：Prism.jsの文法解析エンジンを正確に呼び出し ★★★
     function updateHighlight(input, highlightElem, lang) {
       const text = input.value;
       if (lang === 'html') {
-        // PrismではHTMLは「markup」として登録されている
         const grammar = Prism.languages.markup || Prism.languages.html;
         highlightElem.innerHTML = Prism.highlight(text + '\n', grammar, 'markup');
       } else {
@@ -687,8 +759,14 @@
       highlightPre.scrollLeft = input.scrollLeft;
     }
 
-    htmlInput.addEventListener('scroll', () => syncScroll(htmlInput, htmlHighlight.parentElement));
-    cssInput.addEventListener('scroll', () => syncScroll(cssInput, cssHighlight.parentElement));
+    htmlInput.addEventListener('scroll', () => {
+      syncScroll(htmlInput, htmlHighlight.parentElement);
+      closePopup();
+    });
+    cssInput.addEventListener('scroll', () => {
+      syncScroll(cssInput, cssHighlight.parentElement);
+      closePopup();
+    });
 
     // Undo / Redo
     class HistoryManager {
@@ -742,7 +820,35 @@
       else htmlHistory.redo();
     });
 
-    // プレビュー反映
+    // プレビュー生成
+    function buildPreviewHtml(rawHtml, rawCss) {
+      const trimmed = rawHtml.trim();
+      const styleBlock = `<style id="_nambu_injected_style_">\n${rawCss}\n</style>`;
+
+      if (/<!doctype\s|<html[\s>]/i.test(trimmed)) {
+        let result = rawHtml;
+        if (/<head[\s>]/i.test(result)) {
+          return result.replace(/<head[\s>]/i, `$&\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  ${styleBlock}`);
+        }
+        if (/<html[\s>]/i.test(result)) {
+          return result.replace(/<html[\s>]/i, `$&\n<head>\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  ${styleBlock}\n</head>`);
+        }
+        return `<meta name="viewport" content="width=device-width, initial-scale=1.0">\n${styleBlock}\n` + result;
+      }
+
+      return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${styleBlock}
+</head>
+<body>
+${rawHtml}
+</body>
+</html>`;
+    }
+
     let previewDebounce = null;
     function schedulePreview() {
       clearTimeout(previewDebounce);
@@ -754,19 +860,35 @@
         cur.css = css;
         saveProjects();
 
-        preview.srcdoc = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>${css}</style></head><body>${html}</body></html>`;
-      }, 250);
+        const combinedDoc = buildPreviewHtml(html, css);
+
+        try {
+          const doc = preview.contentDocument || preview.contentWindow.document;
+          doc.open();
+          doc.write(combinedDoc);
+          doc.close();
+        } catch (e) {
+          preview.srcdoc = combinedDoc;
+        }
+      }, 200);
     }
 
     function onEditorChange(input, highlightElem, lang) {
+      // ★ 全角スペース自動置換ガード（全角スペースの事故を未然に防ぐ）
+      if (input.value.includes('　')) {
+        const pos = input.selectionStart;
+        input.value = input.value.replace(/　/g, ' ');
+        input.setSelectionRange(pos, pos);
+      }
+
       updateHighlight(input, highlightElem, lang);
       if (lang === 'html') htmlHistory.record(input.value);
       else cssHistory.record(input.value);
       schedulePreview();
-      renderSuggestions();
+      handleAutoComplete(input, lang);
     }
 
-    // 初期データ投入
+    // 初期化
     const curProj = getActiveProject();
     document.getElementById('label-project-name').textContent = curProj.name;
     htmlInput.value = curProj.html;
@@ -789,14 +911,12 @@
         const val = input.value;
         const nextChar = val[pos];
 
-        // スキップ
         if (closingChars.has(e.key) && nextChar === e.key && pos === end) {
           e.preventDefault();
           input.setSelectionRange(pos + 1, pos + 1);
           return;
         }
 
-        // ペア挿入
         if (pairs[e.key]) {
           e.preventDefault();
           const open = e.key;
@@ -814,7 +934,6 @@
           return;
         }
 
-        // ペア削除
         if (e.key === 'Backspace' && pos === end && pos > 0) {
           const prev = val[pos - 1];
           const curr = val[pos];
@@ -824,36 +943,6 @@
             input.setSelectionRange(pos - 1, pos - 1);
             onEditorChange(input, highlightElem, lang);
             return;
-          }
-        }
-      });
-
-      input.addEventListener('beforeinput', (e) => {
-        if (e.inputType === 'insertText') {
-          const char = e.data;
-          const pos = input.selectionStart;
-          const end = input.selectionEnd;
-          const val = input.value;
-
-          if (closingChars.has(char) && val[pos] === char && pos === end) {
-            e.preventDefault();
-            input.setSelectionRange(pos + 1, pos + 1);
-            return;
-          }
-
-          if (pairs[char]) {
-            e.preventDefault();
-            const open = char;
-            const close = pairs[char];
-            if (pos !== end) {
-              const selected = val.substring(pos, end);
-              input.setRangeText(open + selected + close, pos, end, 'end');
-              input.setSelectionRange(pos + 1, end + 1);
-            } else {
-              input.setRangeText(open + close, pos, pos, 'end');
-              input.setSelectionRange(pos + 1, pos + 1);
-            }
-            onEditorChange(input, highlightElem, lang);
           }
         }
       });
@@ -880,9 +969,14 @@
       }
     });
 
-    // スマートEnter（インデント付き改行）
+    // スマートEnter
     function handleSmartEnter(textarea, highlightElem, lang) {
       textarea.addEventListener('keydown', (e) => {
+        // ポップアップが開いていて選択中の場合はEnter/Tabをポップアップ確定に譲る
+        if (popupVisible && (e.key === 'Enter' || e.key === 'Tab')) {
+          return; // handlePopupKeyDownで処理
+        }
+
         if (e.key === 'Enter') {
           const pos = textarea.selectionStart;
           const val = textarea.value;
@@ -921,40 +1015,234 @@
     handleSmartEnter(htmlInput, htmlHighlight, 'html');
     handleSmartEnter(cssInput, cssHighlight, 'css');
 
-    // 候補チップ（サジェスト）
-    const commonHtmlTags = ['div', 'span', 'p', 'a', 'h1', 'h2', 'h3', 'ul', 'li', 'button', 'input', 'img', 'header', 'main', 'section', 'footer', 'nav'];
-    const commonCssProps = ['color:', 'background:', 'font-size:', 'margin:', 'padding:', 'display: flex;', 'width:', 'height:', 'border:', 'border-radius:', 'cursor: pointer;'];
+    // =============================================================
+    // ★★★ 予測変換エンジン & カーソル追従ポップアップ ★★★
+    // =============================================================
+    const htmlSuggestions = [
+      { text: '<div class=""></div>', label: 'div (class付き)', type: 'tag', cursorOffset: 12 },
+      { text: '<div></div>', label: 'div', type: 'tag', cursorOffset: 5 },
+      { text: '<span class=""></span>', label: 'span', type: 'tag', cursorOffset: 13 },
+      { text: '<p></p>', label: 'p (段落)', type: 'tag', cursorOffset: 3 },
+      { text: '<a href=""></a>', label: 'a (リンク)', type: 'tag', cursorOffset: 9 },
+      { text: '<img src="" alt="">', label: 'img (画像)', type: 'tag', cursorOffset: 10 },
+      { text: '<button></button>', label: 'button', type: 'tag', cursorOffset: 8 },
+      { text: '<input type="text">', label: 'input', type: 'tag', cursorOffset: 18 },
+      { text: 'class=""', label: 'class=""', type: 'attr', cursorOffset: 7 },
+      { text: 'id=""', label: 'id=""', type: 'attr', cursorOffset: 4 },
+      { text: 'src=""', label: 'src=""', type: 'attr', cursorOffset: 5 },
+      { text: 'href=""', label: 'href=""', type: 'attr', cursorOffset: 6 },
+      { text: 'style=""', label: 'style=""', type: 'attr', cursorOffset: 7 },
+      { text: '<h1></h1>', label: 'h1', type: 'tag', cursorOffset: 4 },
+      { text: '<h2></h2>', label: 'h2', type: 'tag', cursorOffset: 4 },
+      { text: '<ul>\n  <li></li>\n</ul>', label: 'ul > li', type: 'tag', cursorOffset: 11 }
+    ];
 
-    function renderSuggestions() {
-      const isCss = document.body.classList.contains('view-css');
-      const input = isCss ? cssInput : htmlInput;
-      const highlightElem = isCss ? cssHighlight : htmlHighlight;
-      const lang = isCss ? 'css' : 'html';
+    const cssSuggestions = [
+      { text: 'position: absolute;', label: 'position: absolute;', type: 'pos' },
+      { text: 'position: relative;', label: 'position: relative;', type: 'pos' },
+      { text: 'position: fixed;', label: 'position: fixed;', type: 'pos' },
+      { text: 'top: 0px;', label: 'top: 0px;', type: 'pos' },
+      { text: 'left: 0px;', label: 'left: 0px;', type: 'pos' },
+      { text: 'right: 0px;', label: 'right: 0px;', type: 'pos' },
+      { text: 'bottom: 0px;', label: 'bottom: 0px;', type: 'pos' },
+      { text: 'width: 100%;', label: 'width: 100%;', type: 'size' },
+      { text: 'height: 100%;', label: 'height: 100%;', type: 'size' },
+      { text: 'margin: 0px;', label: 'margin: 0px;', type: 'box' },
+      { text: 'padding: 0px;', label: 'padding: 0px;', type: 'box' },
+      { text: 'display: flex;', label: 'display: flex;', type: 'flex' },
+      { text: 'display: none;', label: 'display: none;', type: 'layout' },
+      { text: 'justify-content: center;', label: 'justify-content: center;', type: 'flex' },
+      { text: 'align-items: center;', label: 'align-items: center;', type: 'flex' },
+      { text: 'background-color: ;', label: 'background-color:', type: 'color', cursorOffset: 18 },
+      { text: 'color: ;', label: 'color:', type: 'color', cursorOffset: 7 },
+      { text: 'font-size: 16px;', label: 'font-size: 16px;', type: 'font' },
+      { text: 'font-weight: bold;', label: 'font-weight: bold;', type: 'font' },
+      { text: 'border: 1px solid #000;', label: 'border: 1px solid;', type: 'border' },
+      { text: 'border-radius: 8px;', label: 'border-radius:', type: 'border' },
+      { text: 'box-sizing: border-box;', label: 'box-sizing: border-box;', type: 'box' },
+      { text: 'cursor: pointer;', label: 'cursor: pointer;', type: 'ui' },
+      { text: 'overflow: hidden;', label: 'overflow: hidden;', type: 'layout' }
+    ];
 
+    let popupVisible = false;
+    let selectedIndex = 0;
+    let currentFiltered = [];
+    let currentWord = '';
+    let targetInput = null;
+
+    // キャレットの画面上XY座標を取得するヘルパー
+    function getCaretXY(textarea) {
+      let div = document.getElementById('_caret_measure_div_');
+      if (!div) {
+        div = document.createElement('div');
+        div.id = '_caret_measure_div_';
+        document.body.appendChild(div);
+      }
+
+      const style = window.getComputedStyle(textarea);
+      div.style.position = 'absolute';
+      div.style.visibility = 'hidden';
+      div.style.whiteSpace = 'pre-wrap';
+      div.style.wordBreak = 'break-all';
+      div.style.fontFamily = style.fontFamily;
+      div.style.fontSize = style.fontSize;
+      div.style.lineHeight = style.lineHeight;
+      div.style.padding = style.padding;
+      div.style.border = style.border;
+      div.style.boxSizing = style.boxSizing;
+      div.style.width = textarea.clientWidth + 'px';
+      div.style.top = '0';
+      div.style.left = '0';
+
+      const pos = textarea.selectionStart;
+      div.textContent = textarea.value.substring(0, pos);
+      const span = document.createElement('span');
+      span.textContent = textarea.value.substring(pos) || '.';
+      div.appendChild(span);
+
+      const rect = textarea.getBoundingClientRect();
+      return {
+        top: rect.top + span.offsetTop - textarea.scrollTop + 22,
+        left: rect.left + span.offsetLeft - textarea.scrollLeft
+      };
+    }
+
+    function handleAutoComplete(input, lang) {
+      targetInput = input;
       const pos = input.selectionStart;
       const val = input.value;
-      const word = val.substring(0, pos).split(/[\s<>{}:;]/).pop().toLowerCase();
+      const before = val.substring(0, pos);
+      
+      // 入力中の直前ワードを抽出
+      const match = before.match(/([a-zA-Z0-9_\-:<]+)$/);
+      if (!match) {
+        closePopup();
+        return;
+      }
 
-      suggestBar.innerHTML = '';
-      const list = isCss ? commonCssProps : commonHtmlTags;
-      const filtered = word ? list.filter(item => item.toLowerCase().includes(word)) : list.slice(0, 8);
+      currentWord = match[1].toLowerCase();
+      if (currentWord.length < 1) {
+        closePopup();
+        return;
+      }
 
-      filtered.forEach(item => {
-        const chip = document.createElement('button');
-        chip.className = 'suggest-chip';
-        chip.textContent = item;
-        chip.onmousedown = (e) => e.preventDefault();
-        chip.onclick = () => {
-          const start = pos - word.length;
-          input.setRangeText(item, start, pos, 'end');
-          input.focus();
-          onEditorChange(input, highlightElem, lang);
-        };
-        suggestBar.appendChild(chip);
+      const list = lang === 'html' ? htmlSuggestions : cssSuggestions;
+      currentFiltered = list.filter(item => {
+        const target = item.label.toLowerCase();
+        return target.includes(currentWord) || item.text.toLowerCase().includes(currentWord);
+      }).slice(0, 7);
+
+      if (currentFiltered.length === 0) {
+        closePopup();
+        return;
+      }
+
+      renderPopup(input);
+    }
+
+    function renderPopup(input) {
+      selectedIndex = 0;
+      popup.innerHTML = '';
+
+      currentFiltered.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'autocomplete-item' + (index === 0 ? ' selected' : '');
+        
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = item.label;
+        
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'item-type';
+        typeBadge.textContent = item.type;
+
+        row.appendChild(labelSpan);
+        row.appendChild(typeBadge);
+
+        row.onmousedown = (e) => e.preventDefault();
+        row.onclick = () => applySuggestion(item);
+
+        popup.appendChild(row);
+      });
+
+      const coords = getCaretXY(input);
+      // 画面端からはみ出さないよう調整
+      let top = coords.top;
+      let left = Math.min(coords.left, window.innerWidth - 270);
+      if (top + 210 > window.innerHeight) {
+        top = top - 230; // 下に余白がなければ上に表示
+      }
+
+      popup.style.top = Math.max(10, top) + 'px';
+      popup.style.left = Math.max(10, left) + 'px';
+      popup.style.display = 'block';
+      popupVisible = true;
+    }
+
+    function closePopup() {
+      popup.style.display = 'none';
+      popupVisible = false;
+    }
+
+    function applySuggestion(item) {
+      if (!targetInput) return;
+      const pos = targetInput.selectionStart;
+      const start = pos - currentWord.length;
+
+      targetInput.setRangeText(item.text, start, pos, 'end');
+      
+      // カーソル位置をオフセット指定があればそこへ
+      if (item.cursorOffset) {
+        const newPos = start + item.cursorOffset;
+        targetInput.setSelectionRange(newPos, newPos);
+      }
+
+      targetInput.focus();
+      closePopup();
+      
+      const isCss = targetInput === cssInput;
+      onEditorChange(targetInput, isCss ? cssHighlight : htmlHighlight, isCss ? 'css' : 'html');
+    }
+
+    // キーボード（↑ ↓ Enter Tab Esc）で予測変換を操作
+    function handlePopupKeyDown(e) {
+      if (!popupVisible) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = (selectedIndex + 1) % currentFiltered.length;
+        updatePopupSelection();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = (selectedIndex - 1 + currentFiltered.length) % currentFiltered.length;
+        updatePopupSelection();
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        applySuggestion(currentFiltered[selectedIndex]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closePopup();
+      }
+    }
+
+    function updatePopupSelection() {
+      const items = popup.querySelectorAll('.autocomplete-item');
+      items.forEach((item, idx) => {
+        if (idx === selectedIndex) {
+          item.classList.add('selected');
+          item.scrollIntoView({ block: 'nearest' });
+        } else {
+          item.classList.remove('selected');
+        }
       });
     }
 
-    // 記号バー & 移動 & 雛形
+    htmlInput.addEventListener('keydown', handlePopupKeyDown);
+    cssInput.addEventListener('keydown', handlePopupKeyDown);
+    window.addEventListener('click', (e) => {
+      if (!popup.contains(e.target)) closePopup();
+    });
+
+    // 記号バー
     document.querySelectorAll('.symbol-bar button').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -993,7 +1281,7 @@
       });
     });
 
-    // ボトムナビ切り替え
+    // ボトムナビ
     document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
@@ -1001,7 +1289,11 @@
 
         document.body.classList.remove('view-html', 'view-css', 'view-preview');
         document.body.classList.add(btn.dataset.tab);
-        renderSuggestions();
+        closePopup();
+
+        if (btn.dataset.tab === 'view-preview') {
+          schedulePreview();
+        }
       });
     });
 
@@ -1038,6 +1330,7 @@
       const zip = new JSZip();
       const html = htmlInput.value;
       const css = cssInput.value;
+
       let finalHtml = html;
       if (!html.toLowerCase().includes('<html')) {
         finalHtml = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Document</title><link rel="stylesheet" href="style.css"></head><body>\n${html}\n</body></html>`;
@@ -1126,8 +1419,8 @@
       updateHighlight(htmlInput, htmlHighlight, 'html');
       updateHighlight(cssInput, cssHighlight, 'css');
       schedulePreview();
-      renderSuggestions();
       closeDrawer();
+      closePopup();
     }
 
     function openDrawer() { renderList(); drawer.classList.add('open'); overlay.style.display = 'block'; }
