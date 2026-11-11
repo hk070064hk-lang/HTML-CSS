@@ -20,7 +20,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
-    /* 影・シャドウの完全排除 */
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -48,12 +47,9 @@
       --chip-bg: #2d2d2d;
       --caret-color: #FFD400;
 
-      /* 予測変換ポップアップ */
       --popup-bg: #252526;
       --popup-border: #454545;
-      --popup-item-hover: #04395e;
 
-      /* VS Code Dark+ 配色 */
       --hl-doctype: #569cd6;
       --hl-doctype-name: #9cdcfe;
       --hl-tag: #569cd6;
@@ -78,12 +74,9 @@
       --chip-bg: #e2e2e2;
       --caret-color: #000000;
 
-      /* 予測変換ポップアップ */
       --popup-bg: #f3f3f3;
       --popup-border: #cccccc;
-      --popup-item-hover: #e8e8e8;
 
-      /* VS Code Light+ 配色 */
       --hl-doctype: #0000ff;
       --hl-doctype-name: #001080;
       --hl-tag: #800000;
@@ -287,7 +280,6 @@
     .token.rule, .token.keyword { color: var(--hl-keyword) !important; }
     .token.comment { color: var(--hl-comment) !important; font-style: italic; }
 
-    /* エラー波線 */
     .syntax-error {
       text-decoration: underline wavy var(--error-red) !important;
       -webkit-text-decoration: underline wavy var(--error-red) !important;
@@ -295,7 +287,7 @@
       text-underline-offset: 3px;
     }
 
-    /* ★★★ カーソル直下 予測変換ポップアップ (IntelliSense) ★★★ */
+    /* 予測変換ポップアップ */
     .autocomplete-popup {
       position: fixed;
       display: none;
@@ -303,8 +295,8 @@
       background-color: var(--popup-bg);
       border: 1px solid #000000;
       outline: 2px solid var(--nambu-yellow);
-      max-height: 200px;
-      width: 260px;
+      max-height: 220px;
+      width: 290px;
       overflow-y: auto;
       font-family: var(--font-code);
       font-size: 13px;
@@ -333,10 +325,12 @@
 
     .autocomplete-item .item-type {
       font-size: 10px;
-      padding: 1px 4px;
+      padding: 1px 5px;
       background: #000000;
       color: var(--nambu-yellow);
       font-weight: bold;
+      border-radius: 2px;
+      margin-left: 6px;
     }
 
     .autocomplete-item.selected .item-type {
@@ -575,7 +569,7 @@
     </div>
   </div>
 
-  <!-- ★ 予測変換ポップアップ（カーソル追従） -->
+  <!-- 予測変換ポップアップ -->
   <div id="autocomplete-popup" class="autocomplete-popup"></div>
 
   <!-- 記号バー -->
@@ -704,8 +698,8 @@
     })();
 
     // プロジェクト管理
-    const STORAGE_KEY = 'nambu_native_projects_v8';
-    const ACTIVE_KEY = 'nambu_native_active_id_v8';
+    const STORAGE_KEY = 'nambu_native_projects_v9';
+    const ACTIVE_KEY = 'nambu_native_active_id_v9';
     let projects = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
       { id: 'p_1', name: 'プロジェクト 1', html: '', css: '' }
     ];
@@ -874,7 +868,7 @@ ${rawHtml}
     }
 
     function onEditorChange(input, highlightElem, lang) {
-      // ★ 全角スペース自動置換ガード（全角スペースの事故を未然に防ぐ）
+      // 全角スペース自動置換ガード
       if (input.value.includes('　')) {
         const pos = input.selectionStart;
         input.value = input.value.replace(/　/g, ' ');
@@ -972,9 +966,8 @@ ${rawHtml}
     // スマートEnter
     function handleSmartEnter(textarea, highlightElem, lang) {
       textarea.addEventListener('keydown', (e) => {
-        // ポップアップが開いていて選択中の場合はEnter/Tabをポップアップ確定に譲る
         if (popupVisible && (e.key === 'Enter' || e.key === 'Tab')) {
-          return; // handlePopupKeyDownで処理
+          return;
         }
 
         if (e.key === 'Enter') {
@@ -1016,53 +1009,214 @@ ${rawHtml}
     handleSmartEnter(cssInput, cssHighlight, 'css');
 
     // =============================================================
-    // ★★★ 予測変換エンジン & カーソル追従ポップアップ ★★★
+    // ★★★ 超大幅拡充！大容量 予測変換データベース (250件以上) ★★★
     // =============================================================
     const htmlSuggestions = [
-      { text: '<div class=""></div>', label: 'div (class付き)', type: 'tag', cursorOffset: 12 },
+      // レイアウト・セマンティック
+      { text: '<div class=""></div>', label: 'div.class', type: 'tag', cursorOffset: 12 },
       { text: '<div></div>', label: 'div', type: 'tag', cursorOffset: 5 },
-      { text: '<span class=""></span>', label: 'span', type: 'tag', cursorOffset: 13 },
+      { text: '<span class=""></span>', label: 'span.class', type: 'tag', cursorOffset: 13 },
+      { text: '<span></span>', label: 'span', type: 'tag', cursorOffset: 6 },
+      { text: '<header></header>', label: 'header', type: 'tag', cursorOffset: 8 },
+      { text: '<main></main>', label: 'main', type: 'tag', cursorOffset: 6 },
+      { text: '<footer></footer>', label: 'footer', type: 'tag', cursorOffset: 8 },
+      { text: '<nav></nav>', label: 'nav', type: 'tag', cursorOffset: 5 },
+      { text: '<section></section>', label: 'section', type: 'tag', cursorOffset: 9 },
+      { text: '<article></article>', label: 'article', type: 'tag', cursorOffset: 9 },
+      { text: '<aside></aside>', label: 'aside', type: 'tag', cursorOffset: 7 },
+      { text: '<figure>\n  <img src="" alt="">\n  <figcaption></figcaption>\n</figure>', label: 'figure > img', type: 'tag', cursorOffset: 22 },
+
+      // テキスト・見出し
       { text: '<p></p>', label: 'p (段落)', type: 'tag', cursorOffset: 3 },
+      { text: '<h1></h1>', label: 'h1', type: 'tag', cursorOffset: 4 },
+      { text: '<h2></h2>', label: 'h2', type: 'tag', cursorOffset: 4 },
+      { text: '<h3></h3>', label: 'h3', type: 'tag', cursorOffset: 4 },
+      { text: '<h4></h4>', label: 'h4', type: 'tag', cursorOffset: 4 },
+      { text: '<strong></strong>', label: 'strong (太字)', type: 'tag', cursorOffset: 8 },
+      { text: '<em></em>', label: 'em (強調)', type: 'tag', cursorOffset: 4 },
+      { text: '<small></small>', label: 'small', type: 'tag', cursorOffset: 7 },
+      { text: '<blockquote></blockquote>', label: 'blockquote', type: 'tag', cursorOffset: 12 },
+      { text: '<pre><code></code></pre>', label: 'pre > code', type: 'tag', cursorOffset: 11 },
+      { text: '<br>', label: 'br (改行)', type: 'tag', cursorOffset: 4 },
+      { text: '<hr>', label: 'hr (区切り線)', type: 'tag', cursorOffset: 4 },
+
+      // メディア・リンク
       { text: '<a href=""></a>', label: 'a (リンク)', type: 'tag', cursorOffset: 9 },
+      { text: '<a href="" target="_blank" rel="noopener noreferrer"></a>', label: 'a:blank (別タブ)', type: 'tag', cursorOffset: 9 },
       { text: '<img src="" alt="">', label: 'img (画像)', type: 'tag', cursorOffset: 10 },
-      { text: '<button></button>', label: 'button', type: 'tag', cursorOffset: 8 },
-      { text: '<input type="text">', label: 'input', type: 'tag', cursorOffset: 18 },
+      { text: '<video src="" controls></video>', label: 'video', type: 'tag', cursorOffset: 12 },
+      { text: '<audio src="" controls></audio>', label: 'audio', type: 'tag', cursorOffset: 12 },
+      { text: '<iframe src="" frameborder="0"></iframe>', label: 'iframe', type: 'tag', cursorOffset: 13 },
+      { text: '<canvas id="" width="300" height="150"></canvas>', label: 'canvas', type: 'tag', cursorOffset: 13 },
+
+      // リスト・表
+      { text: '<ul>\n  <li></li>\n</ul>', label: 'ul > li', type: 'tag', cursorOffset: 11 },
+      { text: '<ol>\n  <li></li>\n</ol>', label: 'ol > li', type: 'tag', cursorOffset: 11 },
+      { text: '<li></li>', label: 'li', type: 'tag', cursorOffset: 4 },
+      { text: '<dl>\n  <dt></dt>\n  <dd></dd>\n</dl>', label: 'dl > dt+dd', type: 'tag', cursorOffset: 11 },
+      { text: '<table>\n  <tr>\n    <th></th>\n    <td></td>\n  </tr>\n</table>', label: 'table', type: 'tag', cursorOffset: 20 },
+
+      // フォーム
+      { text: '<form action="" method="post"></form>', label: 'form', type: 'tag', cursorOffset: 14 },
+      { text: '<input type="text" placeholder="">', label: 'input:text', type: 'tag', cursorOffset: 30 },
+      { text: '<input type="password" placeholder="">', label: 'input:password', type: 'tag', cursorOffset: 34 },
+      { text: '<input type="email" placeholder="">', label: 'input:email', type: 'tag', cursorOffset: 31 },
+      { text: '<input type="number">', label: 'input:number', type: 'tag', cursorOffset: 21 },
+      { text: '<input type="checkbox" id="">', label: 'input:checkbox', type: 'tag', cursorOffset: 27 },
+      { text: '<input type="radio" name="" id="">', label: 'input:radio', type: 'tag', cursorOffset: 25 },
+      { text: '<input type="file">', label: 'input:file', type: 'tag', cursorOffset: 19 },
+      { text: '<input type="submit" value="">', label: 'input:submit', type: 'tag', cursorOffset: 28 },
+      { text: '<button type="button"></button>', label: 'button', type: 'tag', cursorOffset: 22 },
+      { text: '<textarea rows="4" cols="50"></textarea>', label: 'textarea', type: 'tag', cursorOffset: 29 },
+      { text: '<label for=""></label>', label: 'label', type: 'tag', cursorOffset: 12 },
+      { text: '<select name="" id="">\n  <option value=""></option>\n</select>', label: 'select > option', type: 'tag', cursorOffset: 37 },
+
+      // 属性スニペット
       { text: 'class=""', label: 'class=""', type: 'attr', cursorOffset: 7 },
       { text: 'id=""', label: 'id=""', type: 'attr', cursorOffset: 4 },
       { text: 'src=""', label: 'src=""', type: 'attr', cursorOffset: 5 },
       { text: 'href=""', label: 'href=""', type: 'attr', cursorOffset: 6 },
+      { text: 'alt=""', label: 'alt=""', type: 'attr', cursorOffset: 5 },
       { text: 'style=""', label: 'style=""', type: 'attr', cursorOffset: 7 },
-      { text: '<h1></h1>', label: 'h1', type: 'tag', cursorOffset: 4 },
-      { text: '<h2></h2>', label: 'h2', type: 'tag', cursorOffset: 4 },
-      { text: '<ul>\n  <li></li>\n</ul>', label: 'ul > li', type: 'tag', cursorOffset: 11 }
+      { text: 'placeholder=""', label: 'placeholder=""', type: 'attr', cursorOffset: 13 },
+      { text: 'target="_blank"', label: 'target="_blank"', type: 'attr' },
+      { text: 'rel="noopener noreferrer"', label: 'rel="noopener"', type: 'attr' },
+      { text: 'required', label: 'required', type: 'attr' },
+      { text: 'disabled', label: 'disabled', type: 'attr' },
+      { text: 'readonly', label: 'readonly', type: 'attr' }
     ];
 
     const cssSuggestions = [
+      // ポジショニング・配置
       { text: 'position: absolute;', label: 'position: absolute;', type: 'pos' },
       { text: 'position: relative;', label: 'position: relative;', type: 'pos' },
       { text: 'position: fixed;', label: 'position: fixed;', type: 'pos' },
+      { text: 'position: sticky;\ntop: 0;', label: 'position: sticky;', type: 'pos' },
       { text: 'top: 0px;', label: 'top: 0px;', type: 'pos' },
+      { text: 'bottom: 0px;', label: 'bottom: 0px;', type: 'pos' },
       { text: 'left: 0px;', label: 'left: 0px;', type: 'pos' },
       { text: 'right: 0px;', label: 'right: 0px;', type: 'pos' },
-      { text: 'bottom: 0px;', label: 'bottom: 0px;', type: 'pos' },
-      { text: 'width: 100%;', label: 'width: 100%;', type: 'size' },
-      { text: 'height: 100%;', label: 'height: 100%;', type: 'size' },
-      { text: 'margin: 0px;', label: 'margin: 0px;', type: 'box' },
-      { text: 'padding: 0px;', label: 'padding: 0px;', type: 'box' },
+      { text: 'inset: 0;', label: 'inset: 0;', type: 'pos' },
+      { text: 'z-index: 10;', label: 'z-index: 10;', type: 'pos' },
+
+      // ディスプレイ & Flexbox
       { text: 'display: flex;', label: 'display: flex;', type: 'flex' },
+      { text: 'display: inline-flex;', label: 'display: inline-flex;', type: 'flex' },
+      { text: 'display: grid;', label: 'display: grid;', type: 'grid' },
+      { text: 'display: block;', label: 'display: block;', type: 'layout' },
+      { text: 'display: inline-block;', label: 'display: inline-block;', type: 'layout' },
       { text: 'display: none;', label: 'display: none;', type: 'layout' },
       { text: 'justify-content: center;', label: 'justify-content: center;', type: 'flex' },
+      { text: 'justify-content: space-between;', label: 'justify-content: space-between;', type: 'flex' },
+      { text: 'justify-content: space-around;', label: 'justify-content: space-around;', type: 'flex' },
+      { text: 'justify-content: flex-start;', label: 'justify-content: flex-start;', type: 'flex' },
+      { text: 'justify-content: flex-end;', label: 'justify-content: flex-end;', type: 'flex' },
       { text: 'align-items: center;', label: 'align-items: center;', type: 'flex' },
-      { text: 'background-color: ;', label: 'background-color:', type: 'color', cursorOffset: 18 },
-      { text: 'color: ;', label: 'color:', type: 'color', cursorOffset: 7 },
-      { text: 'font-size: 16px;', label: 'font-size: 16px;', type: 'font' },
-      { text: 'font-weight: bold;', label: 'font-weight: bold;', type: 'font' },
-      { text: 'border: 1px solid #000;', label: 'border: 1px solid;', type: 'border' },
-      { text: 'border-radius: 8px;', label: 'border-radius:', type: 'border' },
+      { text: 'align-items: flex-start;', label: 'align-items: flex-start;', type: 'flex' },
+      { text: 'align-items: flex-end;', label: 'align-items: flex-end;', type: 'flex' },
+      { text: 'flex-direction: column;', label: 'flex-direction: column;', type: 'flex' },
+      { text: 'flex-direction: row;', label: 'flex-direction: row;', type: 'flex' },
+      { text: 'flex-wrap: wrap;', label: 'flex-wrap: wrap;', type: 'flex' },
+      { text: 'gap: 16px;', label: 'gap: 16px;', type: 'flex' },
+      { text: 'flex: 1;', label: 'flex: 1;', type: 'flex' },
+      { text: 'flex-grow: 1;', label: 'flex-grow: 1;', type: 'flex' },
+      { text: 'flex-shrink: 0;', label: 'flex-shrink: 0;', type: 'flex' },
+
+      // ボックスサイズ & マージン・パディング
+      { text: 'width: 100%;', label: 'width: 100%;', type: 'size' },
+      { text: 'width: auto;', label: 'width: auto;', type: 'size' },
+      { text: 'max-width: 100%;', label: 'max-width: 100%;', type: 'size' },
+      { text: 'min-width: ;', label: 'min-width:', type: 'size', cursorOffset: 11 },
+      { text: 'height: 100%;', label: 'height: 100%;', type: 'size' },
+      { text: 'height: auto;', label: 'height: auto;', type: 'size' },
+      { text: 'min-height: 100vh;', label: 'min-height: 100vh;', type: 'size' },
+      { text: 'max-height: ;', label: 'max-height:', type: 'size', cursorOffset: 12 },
+      { text: 'margin: 0px;', label: 'margin: 0px;', type: 'box' },
+      { text: 'margin: 0 auto;', label: 'margin: 0 auto; (中央寄せ)', type: 'box' },
+      { text: 'margin-top: 0px;', label: 'margin-top: 0px;', type: 'box' },
+      { text: 'margin-bottom: 0px;', label: 'margin-bottom: 0px;', type: 'box' },
+      { text: 'margin-left: 0px;', label: 'margin-left: 0px;', type: 'box' },
+      { text: 'margin-right: 0px;', label: 'margin-right: 0px;', type: 'box' },
+      { text: 'padding: 0px;', label: 'padding: 0px;', type: 'box' },
+      { text: 'padding: 12px 16px;', label: 'padding: 12px 16px;', type: 'box' },
+      { text: 'padding-top: 0px;', label: 'padding-top: 0px;', type: 'box' },
+      { text: 'padding-bottom: 0px;', label: 'padding-bottom: 0px;', type: 'box' },
+      { text: 'padding-left: 0px;', label: 'padding-left: 0px;', type: 'box' },
+      { text: 'padding-right: 0px;', label: 'padding-right: 0px;', type: 'box' },
       { text: 'box-sizing: border-box;', label: 'box-sizing: border-box;', type: 'box' },
+
+      // 背景・カラー
+      { text: 'background-color: #fff;', label: 'background-color: #fff;', type: 'color' },
+      { text: 'background-color: transparent;', label: 'background-color: transparent;', type: 'color' },
+      { text: 'background: ;', label: 'background:', type: 'color', cursorOffset: 12 },
+      { text: 'background-image: url("");', label: 'background-image: url();', type: 'color', cursorOffset: 23 },
+      { text: 'background-size: cover;', label: 'background-size: cover;', type: 'color' },
+      { text: 'background-size: contain;', label: 'background-size: contain;', type: 'color' },
+      { text: 'background-position: center;', label: 'background-position: center;', type: 'color' },
+      { text: 'background-repeat: no-repeat;', label: 'background-repeat: no-repeat;', type: 'color' },
+      { text: 'color: #333;', label: 'color: #333;', type: 'color' },
+      { text: 'color: #fff;', label: 'color: #fff;', type: 'color' },
+      { text: 'color: inherit;', label: 'color: inherit;', type: 'color' },
+
+      // ボーダー・装飾
+      { text: 'border: 1px solid #000;', label: 'border: 1px solid #000;', type: 'border' },
+      { text: 'border: 1px solid #ccc;', label: 'border: 1px solid #ccc;', type: 'border' },
+      { text: 'border: none;', label: 'border: none;', type: 'border' },
+      { text: 'border-top: ;', label: 'border-top:', type: 'border', cursorOffset: 12 },
+      { text: 'border-bottom: ;', label: 'border-bottom:', type: 'border', cursorOffset: 15 },
+      { text: 'border-radius: 4px;', label: 'border-radius: 4px;', type: 'border' },
+      { text: 'border-radius: 8px;', label: 'border-radius: 8px;', type: 'border' },
+      { text: 'border-radius: 50%;', label: 'border-radius: 50% (円)', type: 'border' },
+      { text: 'outline: none;', label: 'outline: none;', type: 'border' },
+
+      // タイポグラフィ
+      { text: 'font-size: 14px;', label: 'font-size: 14px;', type: 'font' },
+      { text: 'font-size: 16px;', label: 'font-size: 16px;', type: 'font' },
+      { text: 'font-size: 18px;', label: 'font-size: 18px;', type: 'font' },
+      { text: 'font-size: 24px;', label: 'font-size: 24px;', type: 'font' },
+      { text: 'font-weight: bold;', label: 'font-weight: bold;', type: 'font' },
+      { text: 'font-weight: normal;', label: 'font-weight: normal;', type: 'font' },
+      { text: 'font-family: sans-serif;', label: 'font-family: sans-serif;', type: 'font' },
+      { text: 'text-align: center;', label: 'text-align: center;', type: 'font' },
+      { text: 'text-align: left;', label: 'text-align: left;', type: 'font' },
+      { text: 'text-align: right;', label: 'text-align: right;', type: 'font' },
+      { text: 'line-height: 1.6;', label: 'line-height: 1.6;', type: 'font' },
+      { text: 'line-height: 1;', label: 'line-height: 1;', type: 'font' },
+      { text: 'letter-spacing: 0.5px;', label: 'letter-spacing: 0.5px;', type: 'font' },
+      { text: 'text-decoration: none;', label: 'text-decoration: none;', type: 'font' },
+      { text: 'text-decoration: underline;', label: 'text-decoration: underline;', type: 'font' },
+      { text: 'white-space: nowrap;', label: 'white-space: nowrap;', type: 'font' },
+      { text: 'word-break: break-all;', label: 'word-break: break-all;', type: 'font' },
+      { text: 'text-overflow: ellipsis;\noverflow: hidden;\nwhite-space: nowrap;', label: 'text-overflow (1行省略)', type: 'font' },
+
+      // その他エフェクト & 操作
       { text: 'cursor: pointer;', label: 'cursor: pointer;', type: 'ui' },
-      { text: 'overflow: hidden;', label: 'overflow: hidden;', type: 'layout' }
+      { text: 'opacity: 0.7;', label: 'opacity: 0.7;', type: 'effect' },
+      { text: 'overflow: hidden;', label: 'overflow: hidden;', type: 'layout' },
+      { text: 'overflow: auto;', label: 'overflow: auto;', type: 'layout' },
+      { text: 'overflow-y: auto;', label: 'overflow-y: auto;', type: 'layout' },
+      { text: 'transition: all 0.2s ease;', label: 'transition: all 0.2s;', type: 'effect' },
+      { text: 'transition: opacity 0.2s ease;', label: 'transition: opacity 0.2s;', type: 'effect' },
+      { text: 'transform: translate(-50%, -50%);', label: 'transform: center (中央寄せ)', type: 'effect' },
+      { text: 'transform: scale(1.05);', label: 'transform: scale(1.05);', type: 'effect' },
+      { text: 'pointer-events: none;', label: 'pointer-events: none;', type: 'ui' },
+      { text: 'user-select: none;', label: 'user-select: none;', type: 'ui' }
     ];
+
+    // ブラウザのネイティブプロパティ（約500件）を動的学習してフォールバックに追加
+    (function loadBrowserCssProps() {
+      const dummy = document.createElement('div').style;
+      const seen = new Set(cssSuggestions.map(s => s.label.split(':')[0].trim()));
+      for (const prop in dummy) {
+        if (typeof dummy[prop] === 'string' && isNaN(prop)) {
+          const kebab = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
+          if (!seen.has(kebab) && !kebab.startsWith('webkit-')) {
+            seen.add(kebab);
+            cssSuggestions.push({ text: `${kebab}: ;`, label: `${kebab}:`, type: 'prop', cursorOffset: kebab.length + 2 });
+          }
+        }
+      }
+    })();
 
     let popupVisible = false;
     let selectedIndex = 0;
@@ -1070,7 +1224,6 @@ ${rawHtml}
     let currentWord = '';
     let targetInput = null;
 
-    // キャレットの画面上XY座標を取得するヘルパー
     function getCaretXY(textarea) {
       let div = document.getElementById('_caret_measure_div_');
       if (!div) {
@@ -1113,7 +1266,6 @@ ${rawHtml}
       const val = input.value;
       const before = val.substring(0, pos);
       
-      // 入力中の直前ワードを抽出
       const match = before.match(/([a-zA-Z0-9_\-:<]+)$/);
       if (!match) {
         closePopup();
@@ -1127,10 +1279,22 @@ ${rawHtml}
       }
 
       const list = lang === 'html' ? htmlSuggestions : cssSuggestions;
-      currentFiltered = list.filter(item => {
+
+      // ★ 賢い前方一致ソート：打った文字で始まるものを最上位に表示
+      const startsWithMatches = [];
+      const includesMatches = [];
+
+      list.forEach(item => {
         const target = item.label.toLowerCase();
-        return target.includes(currentWord) || item.text.toLowerCase().includes(currentWord);
-      }).slice(0, 7);
+        const code = item.text.toLowerCase();
+        if (target.startsWith(currentWord) || code.startsWith(currentWord)) {
+          startsWithMatches.push(item);
+        } else if (target.includes(currentWord) || code.includes(currentWord)) {
+          includesMatches.push(item);
+        }
+      });
+
+      currentFiltered = [...startsWithMatches, ...includesMatches].slice(0, 8);
 
       if (currentFiltered.length === 0) {
         closePopup();
@@ -1165,11 +1329,10 @@ ${rawHtml}
       });
 
       const coords = getCaretXY(input);
-      // 画面端からはみ出さないよう調整
       let top = coords.top;
-      let left = Math.min(coords.left, window.innerWidth - 270);
-      if (top + 210 > window.innerHeight) {
-        top = top - 230; // 下に余白がなければ上に表示
+      let left = Math.min(coords.left, window.innerWidth - 300);
+      if (top + 230 > window.innerHeight) {
+        top = top - 250;
       }
 
       popup.style.top = Math.max(10, top) + 'px';
@@ -1190,7 +1353,6 @@ ${rawHtml}
 
       targetInput.setRangeText(item.text, start, pos, 'end');
       
-      // カーソル位置をオフセット指定があればそこへ
       if (item.cursorOffset) {
         const newPos = start + item.cursorOffset;
         targetInput.setSelectionRange(newPos, newPos);
@@ -1203,7 +1365,6 @@ ${rawHtml}
       onEditorChange(targetInput, isCss ? cssHighlight : htmlHighlight, isCss ? 'css' : 'html');
     }
 
-    // キーボード（↑ ↓ Enter Tab Esc）で予測変換を操作
     function handlePopupKeyDown(e) {
       if (!popupVisible) return;
 
